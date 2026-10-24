@@ -6,6 +6,8 @@ import { appointmentsForDay } from "@/lib/appointments";
 import { addDays, formatDayLong, localDate, localTime, weekdayIndex, WEEKDAYS_SHORT, zonedDateTime } from "@/lib/time";
 import { formatPrice } from "@/lib/money";
 import { plural } from "@/lib/text";
+import { loyaltyFor } from "@/lib/loyalty";
+import { loyaltyBadge } from "@/lib/loyalty-rules";
 import { messengerLinks } from "@/lib/messengers";
 import { Avatar } from "@/components/ui";
 import { AppointmentCard, AutoRefresh, MarkSeen, NotificationsPanel } from "./client";
@@ -40,6 +42,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
       select: { id: true, startsAt: true },
     }),
   ]);
+  const loyalty = await loyaltyFor([...new Map(appointments.map((a) => [a.client.id, a.client])).values()]);
   const perDay = new Map<string, number>();
   for (const c of counts) {
     const d = localDate(c.startsAt, salon.timezone);
@@ -105,6 +108,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
                 id: a.id,
                 time: `${localTime(a.startsAt, salon.timezone)} – ${localTime(a.endsAt, salon.timezone)}`,
                 clientName: a.client.name,
+                loyalty: loyaltyBadge(loyalty.get(a.clientId)!),
                 phone: a.client.phone,
                 services: a.items.map((i) => ({ title: i.title, price: formatPrice(Number(i.priceMin), Number(i.priceMax), salon.currency) })),
                 comment: a.comment,

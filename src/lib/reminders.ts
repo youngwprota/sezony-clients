@@ -28,14 +28,3 @@ export async function runReminders(now = new Date()) {
   }
   return sent;
 }
-
-let started = false;
-
-/** Фоновая проверка раз в 5 минут внутри процесса сервера. */
-export function startReminderLoop() {
-  if (started) return;
-  started = true;
-  const tick = () => runReminders().catch((e) => console.error("reminders", e));
-  setTimeout(tick, 30_000);
-  setInterval(tick, 5 * 60_000);
-}

@@ -364,14 +364,23 @@ export async function fillScheduleAction(input: z.input<typeof templateSchema>):
 
 const birthdaySchema = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Дата рождения в формате ГГГГ-ММ-ДД")]);
 
-export async function saveClientAction(id: number, data: { name: string; email: string; birthday: string; comment: string }): Promise<Result> {
+export async function saveClientAction(
+  id: number,
+  data: { name: string; email: string; birthday: string; comment: string; marketingConsent: boolean },
+): Promise<Result> {
   await requireAdmin();
   if (!data.name.trim()) return { ok: false, error: "Введите имя" };
   const b = birthdaySchema.safeParse(data.birthday);
   if (!b.success) return { ok: false, error: b.error.issues[0].message };
   await db.client.update({
     where: { id },
-    data: { name: data.name.trim(), email: data.email.trim() || null, birthday: data.birthday || null, comment: data.comment },
+    data: {
+      name: data.name.trim(),
+      email: data.email.trim() || null,
+      birthday: data.birthday || null,
+      comment: data.comment,
+      marketingConsent: data.marketingConsent,
+    },
   });
   revalidatePath(`/admin/clients/${id}`);
   return { ok: true };

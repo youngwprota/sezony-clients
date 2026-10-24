@@ -10,6 +10,8 @@ const ITEMS = [
   { href: "/admin/schedule", label: "График работы" },
   { href: "/admin/clients", label: "Клиенты" },
   { href: "/admin/analytics", label: "Аналитика" },
+  { href: "/admin/marketing", label: "Рассылки" },
+  { href: "/admin/loyalty", label: "Лояльность" },
   { href: "/admin/settings", label: "Настройки" },
 ];
 

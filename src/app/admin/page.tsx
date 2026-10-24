@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { getSalon } from "@/lib/booking";
 import { appointmentsForDay } from "@/lib/appointments";
 import { hhmmToMinutes, localDate, localTime } from "@/lib/time";
+import { loyaltyFor } from "@/lib/loyalty";
+import { loyaltyBadge } from "@/lib/loyalty-rules";
 import { Journal, type JournalAppointment, type JournalStaff } from "./journal";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +30,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
       shifts: shifts.filter((x) => x.staffId === s.id).map((x) => ({ start: hhmmToMinutes(x.start), end: hhmmToMinutes(x.end) })),
     }));
 
+  const loyalty = await loyaltyFor([...new Map(appointments.map((a) => [a.client.id, a.client])).values()]);
   const items: JournalAppointment[] = appointments.map((a) => {
     const start = localTime(a.startsAt, salon.timezone);
     const endDate = localDate(a.endsAt, salon.timezone);
@@ -40,6 +43,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
       durationMin: Math.round((a.endsAt.getTime() - a.startsAt.getTime()) / 60_000),
       clientId: a.clientId,
       clientName: a.client.name,
+      loyalty: loyaltyBadge(loyalty.get(a.clientId)!),
       phone: a.client.phone,
       services: a.items.map((i) => i.title),
       priceMin: a.items.reduce((s, i) => s + Number(i.priceMin), 0),

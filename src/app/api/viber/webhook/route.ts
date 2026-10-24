@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { sendViber, viberMessage } from "@/lib/messengers";
-import { handleClientAction, linkChat, sendNextAppointment } from "@/lib/notify";
+import { htmlToPlain, sendViber, viberMessage } from "@/lib/messengers";
+import { linkChat, sendNextAppointment } from "@/lib/notify";
+import { handleBotInput } from "@/lib/bot";
 
 function validSignature(body: string, signature: string | null) {
   const token = process.env.VIBER_AUTH_TOKEN;
@@ -33,13 +34,15 @@ export async function POST(req: NextRequest) {
 
   if (event.event === "message" && event.sender?.id) {
     const userId: string = event.sender.id;
-    const data: string = event.message?.text ?? "";
+    const data: string = (event.message?.text ?? "").trim();
+    const menu = [{ text: "Мой статус", data: "status" }];
     if (data === "subscribe") {
-      await sendViber(userId, "Готово! Уведомления о записях будут приходить сюда.");
+      await sendViber(userId, "Готово! Уведомления о записях будут приходить сюда.", menu);
       await sendNextAppointment({ viberUserId: userId });
     } else {
-      const reply = await handleClientAction(data, { viberUserId: userId });
-      if (reply) await sendViber(userId, reply);
+      const reply = await handleBotInput(data, { viberUserId: userId });
+      if (reply) await sendViber(userId, htmlToPlain(reply.html), reply.buttons);
+      else await sendViber(userId, "Напишите «статус» — покажем ваши визиты и записи, «акции» — подписка на акции, «стоп» — отписка.", menu);
     }
   }
   return NextResponse.json({ ok: true });

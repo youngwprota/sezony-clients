@@ -24,6 +24,18 @@ async function main() {
       }),
     });
     console.log("Telegram:", JSON.stringify(await res.json()));
+    // меню команд бота — «личный кабинет» клиента
+    await fetch(`https://api.telegram.org/bot${tg}/setMyCommands`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        commands: [
+          { command: "status", description: "Мои визиты, скидка и записи" },
+          { command: "promo", description: "Получать акции и новости" },
+          { command: "stop", description: "Отписаться от акций" },
+        ],
+      }),
+    });
   } else console.log("Telegram: TELEGRAM_BOT_TOKEN не задан, пропускаем");
 
   const vb = process.env.VIBER_AUTH_TOKEN;

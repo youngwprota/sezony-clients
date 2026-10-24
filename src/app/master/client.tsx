@@ -16,6 +16,7 @@ type Card = {
   id: number;
   time: string;
   clientName: string;
+  loyalty: string | null;
   phone: string;
   services: { title: string; price: string }[];
   comment: string;
@@ -40,6 +41,7 @@ export function AppointmentCard({ a }: { a: Card }) {
       <div className="mt-2 flex items-center justify-between gap-2">
         <div>
           <div className="font-medium">{a.clientName}</div>
+          {a.loyalty && <div className="mt-0.5 inline-block rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-900">{a.loyalty}</div>}
           <a href={`tel:${a.phone}`} className="text-sm text-blue-700">
             {a.phone}
           </a>

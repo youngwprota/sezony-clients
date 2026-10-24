@@ -1,6 +1,6 @@
 /**
  * Начальные данные: настройки салона, услуги и мастера (перенесены из
- * онлайн-записи салона), демо-график на 3 недели и учётная запись владельца.
+ * онлайн-записи салона), демо-график на 3 недели, уровни лояльности и учётная запись владельца.
  * Повторный запуск не трогает уже заполненную базу.
  */
 import { PrismaClient } from "@prisma/client";
@@ -84,6 +84,17 @@ async function main() {
     }
     await db.staffShift.createMany({ data: rows });
     console.log("Демо-график: пн–сб 09:00–21:00 на 3 недели");
+  }
+
+  if ((await db.loyaltyLevel.count()) === 0) {
+    await db.loyaltyLevel.createMany({
+      data: [
+        { name: "Новый клиент", minVisits: 0, discountPercent: 0 },
+        { name: "Постоянный", minVisits: 5, discountPercent: 5 },
+        { name: "VIP", minVisits: 15, discountPercent: 10, perks: "приоритетная запись" },
+      ],
+    });
+    console.log("Лояльность: уровни «Новый клиент», «Постоянный» (5 визитов, −5%), «VIP» (15 визитов, −10%)");
   }
 
   if ((await db.user.count()) === 0) {

@@ -27,6 +27,9 @@ model Salon {
   remindDayBefore   Boolean @default(true)
   /// Напоминание клиенту за N часов (0 — не отправлять)
   remindHoursBefore Int     @default(2)
+  /// Автопоздравление с днём рождения (только клиентам с согласием на рассылки)
+  birthdayGreetingEnabled Boolean @default(false)
+  birthdayGreetingText    String  @default("{имя}, с днём рождения! 🎉 Дарим вам скидку 10% на любую услугу в течение недели. Ваши «Sезоны»")
 }
 
 model ServiceCategory {
@@ -112,10 +115,80 @@ model Client {
   marketingConsent Boolean   @default(false)
   telegramChatId String?
   viberUserId  String?
+  /// Личная скидка, %. Если задана — важнее скидки уровня лояльности
+  personalDiscount Int?
   createdAt    DateTime      @default(now())
   appointments Appointment[]
+  campaignRecipients CampaignRecipient[]
+  autoMessages AutoMessageLog[]
 
   @@index([name])
+}
+
+/// Уровень программы лояльности. Клиент получает уровень по числу визитов («Пришёл»).
+model LoyaltyLevel {
+  id              Int    @id @default(autoincrement())
+  name            String
+  minVisits       Int    @unique
+  discountPercent Int    @default(0)
+  /// Что ещё даёт уровень (видят сотрудники и клиент в боте)
+  perks           String @default("")
+}
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  SENT
+  CANCELLED
+}
+
+/// Рассылка по сегменту клиентов в Telegram / Viber.
+model Campaign {
+  id         Int                 @id @default(autoincrement())
+  title      String
+  text       String
+  /// Фильтр аудитории, см. src/lib/segments.ts
+  segment    Json
+  /// Кнопка «Записаться» со ссылкой на сайт
+  bookButton Boolean             @default(true)
+  status     CampaignStatus      @default(DRAFT)
+  createdAt  DateTime            @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+  recipients CampaignRecipient[]
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model CampaignRecipient {
+  id         Int            @id @default(autoincrement())
+  campaignId Int
+  campaign   Campaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  clientId   Int
+  client     Client         @relation(fields: [clientId], references: [id])
+  /// telegram | viber
+  channel    String
+  status     DeliveryStatus @default(PENDING)
+  error      String?
+  sentAt     DateTime?
+
+  @@unique([campaignId, clientId, channel])
+  @@index([status])
+}
+
+/// Журнал автоматических сообщений, чтобы не отправить одно и то же дважды (например, birthday:2026).
+model AutoMessageLog {
+  id       Int      @id @default(autoincrement())
+  clientId Int
+  client   Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  key      String
+  sentAt   DateTime @default(now())
+
+  @@unique([clientId, key])
 }
 
 enum AppointmentStatus {

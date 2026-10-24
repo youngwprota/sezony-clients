@@ -25,6 +25,8 @@ export type JournalAppointment = {
   durationMin: number;
   clientId: number;
   clientName: string;
+  /** «Постоянный · −5%» */
+  loyalty: string | null;
   phone: string;
   services: string[];
   priceMin: number;
@@ -160,7 +162,10 @@ export function Journal(p: Props) {
                           <div className="font-semibold">
                             {a.time}–{minutesToHHmm(a.endMin % (24 * 60))} {a.source === "ONLINE" && <span title="Онлайн-запись">🌐</span>}
                           </div>
-                          <div className="truncate">{a.clientName}</div>
+                          <div className="truncate">
+                            {a.clientName}
+                            {a.loyalty && <span title={a.loyalty}> ★</span>}
+                          </div>
                           <div className="truncate text-muted">{a.services.join(", ")}</div>
                         </button>
                       );
@@ -364,6 +369,7 @@ function EditForm({ a, date, staff, currency, onDone }: { a: JournalAppointment;
           <Link href={`/admin/clients/${a.clientId}`} className="hover:underline">{a.clientName}</Link>
         </h2>
         <a href={`tel:${a.phone}`} className="text-blue-700">{a.phone}</a>
+        {a.loyalty && <span className="ml-2 rounded-full bg-indigo-50 px-2 py-0.5 text-sm text-indigo-900">{a.loyalty}</span>}
         {a.source === "ONLINE" && <span className="ml-2 text-sm text-muted">· онлайн-запись</span>}
       </div>
       <div className="rounded-xl bg-chip p-3 text-sm">

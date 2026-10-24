@@ -1,8 +1,8 @@
 import "server-only";
 import { signLinkPayload, type LinkTarget } from "./link-payload";
 
-/** Кнопка под сообщением; `data` возвращается в вебхук при нажатии. */
-export type Button = { text: string; data: string };
+/** Кнопка под сообщением: `data` возвращается в вебхук при нажатии, `url` открывает ссылку. */
+export type Button = { text: string; data: string } | { text: string; url: string };
 
 export const telegramEnabled = () => !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_BOT_USERNAME;
 export const viberEnabled = () => !!process.env.VIBER_AUTH_TOKEN && !!process.env.VIBER_BOT_URI;
@@ -29,7 +29,16 @@ export async function sendTelegram(chatId: string, html: string, buttons?: Butto
         text: html,
         parse_mode: "HTML",
         disable_web_page_preview: true,
-        ...(buttons?.length ? { reply_markup: { inline_keyboard: [buttons.map((b) => ({ text: b.text, callback_data: b.data }))] } } : {}),
+        ...(buttons?.length
+          ? {
+              reply_markup: {
+                // до двух кнопок — в ряд, больше — столбиком, чтобы текст не обрезался
+                inline_keyboard: (buttons.length > 2 ? buttons.map((b) => [b]) : [buttons]).map((row) =>
+                  row.map((b) => ("url" in b ? { text: b.text, url: b.url } : { text: b.text, callback_data: b.data })),
+                ),
+              },
+            }
+          : {}),
       }),
     });
     if (!res.ok) console.error("telegram", res.status, await res.text());
@@ -63,8 +72,8 @@ export function viberMessage(text: string, buttons?: Button[]) {
             Type: "keyboard",
             DefaultHeight: false,
             Buttons: buttons.map((b) => ({
-              ActionType: "reply",
-              ActionBody: b.data,
+              ActionType: "url" in b ? "open-url" : "reply",
+              ActionBody: "url" in b ? b.url : b.data,
               Text: b.text,
               Columns: Math.floor(6 / buttons.length),
               Rows: 1,

@@ -5,7 +5,9 @@ import { getSalon } from "@/lib/booking";
 import { formatDayShort, localDate, localTime } from "@/lib/time";
 import { card } from "@/components/form";
 import { STATUS_LABELS } from "@/lib/appointments";
-import { ClientForm } from "./client-form";
+import { loyaltyFor } from "@/lib/loyalty";
+import { plural } from "@/lib/text";
+import { ClientForm, PersonalDiscount } from "./client-form";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +21,7 @@ export default async function ClientCard({ params }: { params: Promise<{ id: str
   if (!client) notFound();
 
   const visits = client.appointments.filter((a) => a.status === "ARRIVED");
+  const loyalty = (await loyaltyFor([client])).get(client.id)!;
   const cancels = client.appointments.filter((a) => a.status === "CANCELLED").length;
   const noShows = client.appointments.filter((a) => a.status === "NO_SHOW").length;
 
@@ -27,21 +30,40 @@ export default async function ClientCard({ params }: { params: Promise<{ id: str
       <Link href="/admin/clients" className="text-muted">← Клиенты</Link>
       <div className="mt-2 grid gap-4 md:grid-cols-[1fr_1fr]">
         <section className={card}>
-          <ClientForm id={client.id} initial={{ name: client.name, email: client.email ?? "", birthday: client.birthday ?? "", comment: client.comment }} />
+          <ClientForm
+            id={client.id}
+            initial={{ name: client.name, email: client.email ?? "", birthday: client.birthday ?? "", comment: client.comment, marketingConsent: client.marketingConsent }}
+          />
           <p className="mt-3 text-sm">
             <a href={`tel:${client.phone}`} className="text-blue-700">{client.phone}</a>
           </p>
           <p className="mt-1 text-xs text-muted">
-            Клиент с {formatDayShort(localDate(client.createdAt, salon.timezone))} · рассылки: {client.marketingConsent ? "согласен" : "нет согласия"}
+            Клиент с {formatDayShort(localDate(client.createdAt, salon.timezone))}
             <br />
             Напоминания: {[client.viberUserId && "Viber", client.telegramChatId && "Telegram"].filter(Boolean).join(", ") || "мессенджер не подключён"}
           </p>
         </section>
-        <section className={`${card} grid grid-cols-3 gap-2 text-center`}>
-          <Stat label="Визитов" value={String(visits.length)} />
-          <Stat label="Отменил" value={String(cancels)} />
-          <Stat label="Не пришёл" value={String(noShows)} />
-        </section>
+        <div className="flex flex-col gap-4">
+          <section className={`${card} grid grid-cols-3 gap-2 text-center`}>
+            <Stat label="Визитов" value={String(visits.length)} />
+            <Stat label="Отменил" value={String(cancels)} />
+            <Stat label="Не пришёл" value={String(noShows)} />
+          </section>
+          <section className={card}>
+            <h2 className="font-semibold">Программа лояльности</h2>
+            <p className="mt-1 text-sm">
+              {loyalty.level ? `Уровень: ${loyalty.level.name}` : "Уровни не настроены"}
+              {loyalty.discount ? ` · скидка ${loyalty.discount}%${loyalty.personal ? " (личная)" : ""}` : ""}
+            </p>
+            {loyalty.level?.perks && <p className="text-sm text-muted">Бонусы: {loyalty.level.perks}</p>}
+            {loyalty.next && (
+              <p className="text-sm text-muted">
+                До «{loyalty.next.level.name}» — {loyalty.next.visitsLeft} {plural(loyalty.next.visitsLeft, "визит", "визита", "визитов")}
+              </p>
+            )}
+            <PersonalDiscount clientId={client.id} value={client.personalDiscount} levelDiscount={loyalty.level?.discountPercent ?? 0} />
+          </section>
+        </div>
       </div>
 
       <h2 className="mt-6 mb-2 text-lg font-semibold">История записей</h2>

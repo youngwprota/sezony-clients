@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { getSalon } from "@/lib/booking";
 import { formatDayShort, localDate } from "@/lib/time";
 import { card, inputCls, btnSecondary } from "@/components/form";
+import { loyaltyFor } from "@/lib/loyalty";
+import { loyaltyBadge } from "@/lib/loyalty-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,8 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
     }),
   ]);
 
+  const loyalty = await loyaltyFor(clients);
+
   return (
     <div className="max-w-4xl">
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -49,6 +53,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             <tr>
               <th className="p-3 font-normal">Клиент</th>
               <th className="p-3 font-normal">Телефон</th>
+              <th className="p-3 font-normal">Лояльность</th>
               <th className="p-3 text-right font-normal">Визитов</th>
               <th className="p-3 text-right font-normal">Последняя запись</th>
             </tr>
@@ -60,13 +65,14 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
                   <Link href={`/admin/clients/${c.id}`} className="font-medium hover:underline">{c.name}</Link>
                 </td>
                 <td className="p-3">{c.phone}</td>
+                <td className="p-3 text-muted">{loyaltyBadge(loyalty.get(c.id)!) ?? "—"}</td>
                 <td className="p-3 text-right">{c._count.appointments}</td>
                 <td className="p-3 text-right text-muted">{c.appointments[0] ? formatDayShort(localDate(c.appointments[0].startsAt, salon.timezone)) : "—"}</td>
               </tr>
             ))}
             {clients.length === 0 && (
               <tr>
-                <td colSpan={4} className="p-6 text-center text-muted">Клиентов не найдено</td>
+                <td colSpan={5} className="p-6 text-center text-muted">Клиентов не найдено</td>
               </tr>
             )}
           </tbody>
