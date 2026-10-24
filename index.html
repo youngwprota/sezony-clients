@@ -323,6 +323,26 @@ function seedAll() {
   return { clients, bookings: out };
 }
 
+// ---------- телефон (та же логика, что в приложении: официальная нумерация Беларуси) ----------
+const BY_MOBILE = /^(?:2(?:5[5-79]|9[1-9])|(?:33|44)\d)\d{6}$/;
+const BY_FIXED = /^(?:1(?:5(?:1[1-5]|[24]\d|6[2-4]|9[1-7])|6(?:[235]\d|4[1-7])|7\d\d)|2(?:1(?:[246]\d|3[0-35-9]|5[1-9])|2(?:[235]\d|4[0-8])|3(?:[26]\d|3[02-79]|4[024-7]|5[03-7])))\d{5}$/;
+function checkPhone(raw, allowFixed) {
+  const input = raw.trim().replace(/^00/, "+");
+  if (/[^\d\s()+\-.]/.test(input)) return { error: "Номер может содержать только цифры, пробелы, скобки и дефис" };
+  let d = input.replace(/\D/g, "");
+  if (!d) return { error: "Введите номер телефона" };
+  if (input.startsWith("+") && !d.startsWith("375")) {
+    // иностранный номер: в демо — упрощённая проверка длины, в приложении — полная по стране
+    return d.length >= 10 && d.length <= 15 ? { phone: "+" + d } : { error: "Номер не существует — проверьте код страны и цифры" };
+  }
+  if (d.startsWith("375")) d = d.slice(3); else d = d.replace(/^80?/, "");
+  if (d.length < 9) return { error: "Номер слишком короткий: нужно 9 цифр после +375, например 29 123-45-67" };
+  if (d.length > 9) return { error: "Номер слишком длинный: нужно 9 цифр после +375, например 29 123-45-67" };
+  if (BY_MOBILE.test(d)) return { phone: "+375" + d };
+  if (BY_FIXED.test(d)) return allowFixed ? { phone: "+375" + d } : { error: "Укажите мобильный номер (коды 25, 29, 33, 44) — на него придут напоминания" };
+  return { error: "Такого номера в Беларуси нет. Проверьте код оператора (мобильные: 25, 29, 33, 44) и цифры" };
+}
+
 // ---------- клиенты и лояльность ----------
 function clientFor(name, phone) {
   if (!store.clients[phone]) store.clients[phone] = { name, phone, tg: false, vb: false, consent: false, birthday: null, personal: null };
@@ -543,6 +563,7 @@ function cTime() {
 }
 function cConfirm() {
   const c = ui.c, st = c.staffId && staffById.get(c.staffId);
+  const F = c.form || {};
   const free = daySlots(c.at.date, c.staffId, c.svc).get(c.at.min) || [];
   const os = offers(c.svc).filter((o) => (st ? o.staff.id === st.id : free.includes(o.staff.id)));
   const lines = c.svc.map((id) => (st ? staffSvc(st, id) : service(id)));
@@ -562,12 +583,12 @@ function cConfirm() {
     </div>
     ${stillFree ? `<form class="stack" id="book-form" novalidate>
       <div style="font-size:20px;font-weight:700">Ваши данные</div>
-      <label class="field"><span>Имя *</span><input class="inp" id="f-name" autocomplete="name" placeholder="Введите имя"></label>
-      <label class="field"><span>Телефон *</span><div class="phone"><span>+375</span><input id="f-phone" inputmode="tel" autocomplete="tel-national" placeholder="Номер телефона"></div></label>
-      <label class="field"><span>E-mail</span><input class="inp" id="f-email" type="email" autocomplete="email" placeholder="Введите e-mail"></label>
-      <label class="field"><span>Комментарий</span><textarea class="inp" id="f-comment" placeholder="Комментарий к записи"></textarea></label>
-      <label style="display:flex;gap:12px;align-items:flex-start" class="sm"><input type="checkbox" id="f-consent" style="width:20px;height:20px;margin:0;accent-color:var(--ink)"> <span>Я даю согласие салону «Sезоны» на обработку персональных данных</span></label>
-      <label style="display:flex;gap:12px;align-items:flex-start" class="sm"><input type="checkbox" id="f-promo" style="width:20px;height:20px;margin:0;accent-color:var(--ink)"> <span>Хочу получать акции и новости салона</span></label>
+      <label class="field"><span>Имя *</span><input class="inp" id="f-name" autocomplete="name" placeholder="Введите имя" maxlength="100" value="${esc(F.name || "")}"></label>
+      <label class="field"><span>Телефон *</span><div class="phone"><span>+375</span><input id="f-phone" inputmode="tel" autocomplete="tel-national" placeholder="29 123-45-67" maxlength="30" value="${esc(F.phone || "")}"></div></label>
+      <label class="field"><span>E-mail</span><input class="inp" id="f-email" type="email" autocomplete="email" placeholder="Введите e-mail" value="${esc(F.email || "")}"></label>
+      <label class="field"><span>Комментарий</span><textarea class="inp" id="f-comment" placeholder="Комментарий к записи" maxlength="1000">${esc(F.comment || "")}</textarea></label>
+      <label style="display:flex;gap:12px;align-items:flex-start" class="sm"><input type="checkbox" id="f-consent" ${F.consent ? "checked" : ""} style="width:20px;height:20px;margin:0;accent-color:var(--ink)"> <span>Я даю согласие салону «Sезоны» на обработку персональных данных</span></label>
+      <label style="display:flex;gap:12px;align-items:flex-start" class="sm"><input type="checkbox" id="f-promo" ${F.promo ? "checked" : ""} style="width:20px;height:20px;margin:0;accent-color:var(--ink)"> <span>Хочу получать акции и новости салона</span></label>
       ${c.err ? `<div class="err">${esc(c.err)}</div>` : ""}
       <div class="bottom" style="margin-top:4px"><button class="primary" type="submit">Записаться</button></div>
     </form>` : `<div style="background:var(--chip);border-radius:16px;padding:16px;text-align:center" class="stack"><span>Выбранное время уже недоступно.</span><button class="primary" data-a="c-go-time">Выбрать другое время</button></div>`}
@@ -1010,12 +1031,14 @@ document.addEventListener("submit", (e) => {
   const v = (id) => (document.getElementById(id) || {}).value || "";
   if (e.target.id === "book-form") {
     const c = ui.c;
-    const name = v("f-name").trim();
-    let digits = v("f-phone").replace(/\D/g, "");
-    if (digits.startsWith("80")) digits = digits.slice(2);
-    if (!digits.startsWith("375")) digits = "375" + digits;
+    // сохраняем введённое, чтобы после ошибки форма не очищалась
+    c.form = { name: v("f-name"), phone: v("f-phone"), email: v("f-email"), comment: v("f-comment"), consent: document.getElementById("f-consent").checked, promo: document.getElementById("f-promo").checked };
+    const name = v("f-name").trim().replace(/\s+/g, " ");
+    const ph = checkPhone(v("f-phone"), false);
+    const digits = ph.phone ? ph.phone.slice(1) : "";
     if (!name) c.err = "Введите имя";
-    else if (digits.length !== 12) c.err = "Проверьте номер телефона: 9 цифр после +375";
+    else if (!/\p{L}/u.test(name)) c.err = "Имя должно содержать буквы";
+    else if (ph.error) c.err = ph.error;
     else if (!document.getElementById("f-consent").checked) c.err = "Нужно согласие на обработку персональных данных";
     else {
       const free = daySlots(c.at.date, c.staffId, c.svc).get(c.at.min) || [];
@@ -1028,7 +1051,7 @@ document.addEventListener("submit", (e) => {
         const cl = clientFor(name, "+" + digits);
         if (document.getElementById("f-promo").checked) cl.consent = true;
         store.bookings.push(b); save();
-        c.done = b; c.screen = "done"; c.err = null;
+        c.done = b; c.screen = "done"; c.err = null; c.form = null;
         render(); top0();
         setTimeout(() => toast(`Уведомление мастеру ${st.n}: новая запись`, `${dayShort(b.date)}, ${hm(b.start)} — ${name}, ${b.items.map((i) => i.t).join(", ")}`), 700);
         return;
@@ -1041,10 +1064,13 @@ document.addEventListener("submit", (e) => {
     const s = ui.sheet, st = staffById.get(s.staffId);
     const ids = [...document.querySelectorAll("input[name=n-svc]:checked")].map((x) => +x.value);
     const [hh, mm] = v("n-time").split(":").map(Number);
-    const start = hh * 60 + mm, name = v("n-name").trim(), phone = v("n-phone").trim();
+    const ph = checkPhone(v("n-phone"), true);
+    const start = hh * 60 + mm, name = v("n-name").trim(), phone = ph.phone || "";
     const items = ids.map((id) => staffSvc(st, id));
     const end = start + items.reduce((a, i) => a + i.m, 0);
-    if (!name || phone.replace(/\D/g, "").length < 9) s.err = "Укажите имя и телефон клиента";
+    if (!name) s.err = "Укажите имя клиента";
+    else if (ph.error) s.err = ph.error;
+    else if (Number.isNaN(start)) s.err = "Укажите время";
     else if (!ids.length) s.err = "Выберите хотя бы одну услугу";
     else if (store.bookings.some((x) => x.staffId === st.id && x.date === ui.a.date && ACTIVE(x) && x.start < end && start < x.end)) s.err = "У мастера уже есть запись на это время";
     else {
