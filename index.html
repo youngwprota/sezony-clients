@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141414">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Sезоны онлайн-запись</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&display=swap">
+<style>
+/* Макет: узкая колонка приложения (как виджет YCLIENTS) под тонкой демо-панелью переключения ролей.
+   Приложение салона светлое, поэтому страница намеренно в одной светлой теме. */
+:root {
+  --bg: #ffffff;
+  --app-gray: #f5f5f6;
+  --ink: #141414;
+  --muted: #86868b;
+  --line: #ebebed;
+  --chip: #f0f0f2;
+  --ok: #2f9e44;
+  --danger: #d93f45;
+  --link: #2459c9;
+  --st-booked-bg: #fff8e6; --st-booked: #e8a20c;
+  --st-conf-bg: #eef0ff; --st-conf: #5b63e6;
+  --st-arr-bg: #ebf8ee; --st-arr: #2f9e44;
+  --st-no-bg: #fdecec; --st-no: #d93f45;
+  --font: "Golos Text", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.4 var(--font); -webkit-tap-highlight-color: transparent; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--ink); }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+input, select, textarea { font: inherit; color: var(--ink); }
+.muted { color: var(--muted); }
+.sm { font-size: 14px; }
+.xs { font-size: 12px; }
+.b { font-weight: 600; }
+
+/* демо-панель */
+.demo { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 50; background: var(--ink); color: #fff;
+  padding-block: 8px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.demo-in { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.demo-label { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; opacity: .65; }
+.seg { display: flex; background: rgba(255,255,255,.12); border-radius: 12px; padding: 3px; gap: 2px; }
+.seg button { padding: 6px 12px; border-radius: 9px; font-size: 14px; color: #fff; }
+.seg button[aria-pressed="true"] { background: #fff; color: var(--ink); font-weight: 500; }
+.demo-note { font-size: 12px; opacity: .65; margin-left: auto; }
+@media (max-width: 560px) { .demo-note { display: none; } }
+
+/* колонка клиентского приложения */
+.col { max-width: 600px; margin: 0 auto; min-height: calc(100% - 50px); display: flex; flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.hdr { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 50px); z-index: 20; background: var(--bg); height: 52px; display: flex; align-items: center; gap: 10px; margin: 0 -16px; padding: 0 16px; }
+.icon-btn { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.icon-btn:hover { background: var(--chip); }
+h1.big { font-size: 26px; font-weight: 700; margin: 4px 0 16px; text-wrap: balance; }
+.menu-row { display: flex; align-items: center; gap: 16px; padding: 8px 0; width: 100%; text-align: left; }
+.circle { width: 48px; height: 48px; border-radius: 50%; background: var(--chip); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 500; color: #555; font-size: 18px; }
+.grow { flex: 1; min-width: 0; }
+.clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.clamp1 { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.foot { margin-top: auto; padding: 28px 0; text-align: center; color: var(--muted); font-size: 14px; }
+.bottom { position: sticky; bottom: 0; z-index: 20; background: var(--bg); border-top: 1px solid var(--line); margin: 16px -16px 0; padding: 12px 16px max(12px, env(safe-area-inset-bottom, 0px)); }
+.primary { display: flex; width: 100%; height: 52px; align-items: center; justify-content: center; background: var(--ink); color: #fff; border-radius: 16px; font-weight: 500; font-size: 16px; }
+.primary:disabled { opacity: .35; cursor: default; }
+.secondary { height: 44px; padding: 0 16px; border-radius: 12px; background: var(--chip); font-size: 15px; }
+.radio { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.radio.on { border-color: var(--ink); }
+.radio.on::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); }
+.chk { width: 24px; height: 24px; border-radius: 7px; border: 2px solid var(--line); display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; }
+.chk.on { background: var(--ink); border-color: var(--ink); }
+.slots-row { display: flex; gap: 8px; overflow-x: auto; margin-right: -16px; padding-right: 16px; scrollbar-width: none; }
+.slots-row::-webkit-scrollbar { display: none; }
+.slot { height: 40px; padding: 0 16px; border-radius: 12px; background: var(--chip); flex-shrink: 0; font-size: 15px; font-variant-numeric: tabular-nums; }
+.slot.on { background: var(--ink); color: #fff; }
+.staff-item { padding-top: 16px; }
+.staff-item.off { opacity: .45; }
+.stars { color: #f5a623; font-size: 13px; letter-spacing: 1px; }
+.search { display: flex; align-items: center; gap: 8px; height: 44px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; }
+.search input { border: 0; outline: 0; flex: 1; height: 100%; background: transparent; }
+.sticky-tools { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 102px); z-index: 15; background: var(--bg); margin: 0 -16px; padding: 0 16px 8px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; margin: 12px -16px 0; padding: 0 16px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { height: 40px; padding: 0 12px; border-radius: 12px; background: var(--chip); white-space: nowrap; font-size: 14px; flex-shrink: 0; }
+.chip.on { background: var(--ink); color: #fff; }
+.cat-h { font-size: 20px; font-weight: 700; margin: 18px 0 2px; scroll-margin-top: 170px; }
+.svc { border-bottom: 1px solid var(--line); padding: 14px 0; }
+.svc:last-child { border-bottom: 0; }
+.svc-top { display: flex; gap: 12px; width: 100%; text-align: left; }
+.svc-meta { margin-top: 4px; color: var(--muted); font-size: 14px; }
+.svc-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+.more { color: var(--muted); font-size: 14px; margin-right: 36px; }
+.cal { margin: 0 -16px; padding: 0 16px 14px; border-radius: 0 0 24px 24px; box-shadow: 0 10px 18px -14px rgba(0,0,0,.25); }
+.cal-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; row-gap: 4px; }
+.cal-grid .wd { color: var(--muted); font-size: 14px; padding: 6px 0; }
+.day { width: 44px; height: 44px; margin: 0 auto; border-radius: 12px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.day.av { font-weight: 600; }
+.day.na { color: #c9c9cd; cursor: default; }
+.day.sel { background: var(--ink); color: #fff; }
+.day.today { text-decoration: underline; text-underline-offset: 4px; }
+.day.hide { visibility: hidden; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; text-align: center; margin-bottom: 6px; }
+.tabs button { padding-bottom: 8px; border-bottom: 2px solid var(--line); color: var(--muted); }
+.tabs button.on { border-color: var(--ink); color: var(--ink); }
+.slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (min-width: 480px) { .slot-grid { grid-template-columns: repeat(4, 1fr); } }
+.part-h { font-size: 17px; font-weight: 500; margin: 16px 0 10px; }
+.detail { display: flex; align-items: center; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 14px; color: var(--muted); }
+.inp { height: 48px; border: 1px solid var(--line); border-radius: 12px; padding: 0 12px; outline: 0; background: var(--bg); width: 100%; }
+.inp:focus { border-color: var(--ink); }
+textarea.inp { height: 96px; padding: 10px 12px; resize: none; }
+.phone { display: flex; height: 48px; border: 1px solid var(--line); border-radius: 12px; align-items: center; }
+.phone span { padding: 0 12px; border-right: 1px solid var(--line); line-height: 48px; }
+.phone input { flex: 1; border: 0; outline: 0; height: 100%; padding: 0 12px; border-radius: 0 12px 12px 0; min-width: 0; }
+.err { background: var(--st-no-bg); color: var(--danger); padding: 10px 12px; border-radius: 12px; }
+.row-between { display: flex; justify-content: space-between; gap: 12px; }
+.done-badge { width: 64px; height: 64px; border-radius: 50%; background: var(--ok); color: #fff; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+
+/* мастер */
+.m-wrap { max-width: 600px; margin: 0 auto; background: var(--app-gray); min-height: calc(100% - 50px); padding-bottom: 32px; }
+.m-top { background: var(--bg); padding: 14px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 12px; }
+.m-days { background: var(--bg); display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 12px; scrollbar-width: none; }
+.m-days::-webkit-scrollbar { display: none; }
+.m-day { width: 50px; flex-shrink: 0; border-radius: 16px; background: var(--chip); padding: 7px 0; display: flex; flex-direction: column; align-items: center; position: relative; }
+.m-day.on { background: var(--ink); color: #fff; }
+.m-day .dot { position: absolute; top: 5px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+.m-sec { padding: 16px 16px 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.card { background: var(--bg); border-radius: 18px; padding: 16px; }
+.card.new { box-shadow: inset 0 0 0 2px var(--ink); }
+.pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--chip); white-space: nowrap; }
+.pill.dark { background: var(--ink); color: #fff; }
+.pill.BOOKED { background: var(--st-booked-bg); color: #8a5a00; }
+.pill.CONFIRMED { background: var(--st-conf-bg); color: #3b40a8; }
+.pill.ARRIVED { background: var(--st-arr-bg); color: #1f6b2f; }
+.pill.NO_SHOW { background: var(--st-no-bg); color: #a12a2f; }
+.pill.CANCELLED { color: var(--muted); text-decoration: line-through; }
+.call { width: 40px; height: 40px; border-radius: 50%; background: var(--chip); display: flex; align-items: center; justify-content: center; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tel { color: var(--link); font-size: 14px; user-select: all; }
+
+/* админка */
+.a-wrap { max-width: 1100px; margin: 0 auto; padding-block: 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.a-nav { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.a-nav button { padding: 8px 14px; border-radius: 12px; }
+.a-nav button.on { background: var(--ink); color: #fff; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.jr { overflow: auto; border: 1px solid var(--line); border-radius: 16px; max-height: calc(100dvh - 210px); background: var(--bg); }
+.jr-in { position: relative; }
+.jr-head { position: sticky; top: 0; z-index: 4; display: flex; background: var(--bg); border-bottom: 1px solid var(--line); }
+.jr-corner { position: sticky; left: 0; z-index: 5; width: 50px; flex-shrink: 0; background: var(--bg); }
+.jr-col-h { width: 150px; flex-shrink: 0; border-left: 1px solid var(--line); padding: 8px; }
+.jr-body { display: flex; position: relative; }
+.jr-times { position: sticky; left: 0; z-index: 3; width: 50px; flex-shrink: 0; background: var(--bg); }
+.jr-t { position: relative; font-size: 11px; color: var(--muted); text-align: right; padding-right: 6px; font-variant-numeric: tabular-nums; }
+.jr-col { position: relative; width: 150px; flex-shrink: 0; border-left: 1px solid var(--line); }
+.jr-cell { display: block; width: 100%; }
+.jr-cell.h { border-top: 1px solid var(--line); }
+.jr-cell.off { background: repeating-linear-gradient(135deg, #f8f8f9, #f8f8f9 6px, #f0f0f2 6px, #f0f0f2 12px); }
+.jr-cell:hover { background-color: var(--chip); }
+.appt { position: absolute; left: 3px; right: 3px; border-radius: 8px; border-left: 4px solid; padding: 3px 6px; font-size: 12px; text-align: left; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,.08); line-height: 1.3; }
+.appt.BOOKED { background: var(--st-booked-bg); border-color: var(--st-booked); }
+.appt.CONFIRMED { background: var(--st-conf-bg); border-color: var(--st-conf); }
+.appt.ARRIVED { background: var(--st-arr-bg); border-color: var(--st-arr); }
+.appt.NO_SHOW { background: var(--st-no-bg); border-color: var(--st-no); }
+.now { position: absolute; left: 50px; right: 0; border-top: 2px solid var(--danger); z-index: 2; pointer-events: none; }
+.svc-cat { background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-bottom: 12px; }
+.svc-line { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; width: 100%; text-align: left; padding: 9px 0; border-top: 1px solid var(--line); }
+.svc-line:hover { background: var(--app-gray); }
+.st-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-btn { height: 36px; padding: 0 12px; border-radius: 10px; border-left: 4px solid; font-size: 14px; }
+.st-btn.sel { box-shadow: 0 0 0 2px var(--ink); }
+
+/* шторка и уведомление */
+.ov { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.4); display: flex; align-items: flex-end; justify-content: center; }
+@media (min-width: 640px) { .ov { align-items: center; } }
+.sheet { background: var(--bg); width: 100%; max-width: 600px; max-height: 90dvh; overflow-y: auto; border-radius: 24px 24px 0 0;
+  padding: 18px max(20px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px)); }
+@media (min-width: 640px) { .sheet { border-radius: 24px; } }
+.grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 14px; }
+.toast { position: fixed; z-index: 80; left: 50%; transform: translateX(-50%); top: calc(env(safe-area-inset-top, 0px) + 60px); width: min(92vw, 420px);
+  background: rgba(30,30,32,.96); color: #fff; border-radius: 16px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: 14px; animation: drop .35s ease-out; }
+.toast b { display: block; margin-bottom: 2px; }
+@keyframes drop { from { transform: translate(-50%, -16px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } * { scroll-behavior: auto !important; } }
+</style>
+
+</head>
+<body>
+<div class="demo">
+  <div class="demo-in">
+    <span class="demo-label">Демо</span>
+    <div class="seg" role="group" aria-label="Кем смотреть">
+      <button data-a="mode" data-v="client">Клиент</button>
+      <button data-a="mode" data-v="master">Мастер</button>
+      <button data-a="mode" data-v="admin">Админ</button>
+    </div>
+    <span class="demo-note">Записи сохраняются только на этом устройстве</span>
+  </div>
+</div>
+<div id="app"></div>
+<div id="sheet-root"></div>
+<div id="toast-root"></div>
+
+<script>
+const DATA = {"cats":[{"id":1,"t":"Для мужчин"},{"id":2,"t":"Стрижки"},{"id":3,"t":"Окрашивание"},{"id":4,"t":"Биозавивка и биовыпрямление"},{"id":5,"t":"Восстановление и уходы"},{"id":6,"t":"Укладки и прически"},{"id":7,"t":"Безопасный маникюр"},{"id":8,"t":"Безопасный педикюр"},{"id":9,"t":"Подологический педикюр"},{"id":10,"t":"Косметические процедуры"},{"id":11,"t":"Депиляция воском"},{"id":12,"t":"Мужская депиляция"},{"id":13,"t":"Брови и ресницы"}],"services":[{"id":1,"c":10,"t":"Консультация","d":"Разбор домашнего ухода, рекомендации по подбору косметических средств, согласно типу и состоянию кожи.\nБесплатно-если консультация предшествует процедуре.","p":[50.0,50.0],"m":30},{"id":2,"c":10,"t":"Гигиеническая чистка лица","d":"Процедура глубокого очищения кожи от загрязнений, комедонов и ороговевших клеток. Процедура выполняется на профессиональных препаратах Anna Lotan, Gi-gi с использованием гидрирующих препаратов, позволяющих сделать процедуру максимально безопасной и эффективной.","p":[120.0,120.0],"m":90},{"id":3,"c":10,"t":"Подростковая мануальная чистка","d":"Процедура выполняется на профессиональных препаратах Anna Lotan, Gi-gi с использованием гидрирующих препаратов, позволяющих сделать процедуру максимально безопасной и эффективной.","p":[99.0,99.0],"m":90},{"id":4,"c":10,"t":"Моделирующий (скульптурный) массаж лица","d":"Глубока мануальная  техника омоложения -\"Безоперационный лифтинг\". В отличии от классического массажа прорабатываются не только кожа, но и глубокие мышцы, фасции, подкожно-жировая клетчатка. Результат-устраняем отек, убираем морщины и второй подбородок, поднимаем скулы и верхнее веко.","p":[120.0,120.0],"m":60},{"id":5,"c":10,"t":"Моделирующий (скульптурный) массаж лица +уход","d":"","p":[150.0,150.0],"m":90},{"id":6,"c":10,"t":"Буккальный массаж","d":"Глубокая скульптурная техника омоложения, при которой проработка мышц лица и скул осуществляется через полость рта (интраорально) в сочетании с наружным воздействием. Результат- безоперационный лифтинг, уменьшение объемов щек, второго подбородка, разглаживание морщин.","p":[120.0,120.0],"m":60},{"id":7,"c":10,"t":"Процедура ухода Guinot Lift Sammum","d":"Мануальная процедура омоложения. Альтернатива инъекционным процедурам. Направлена на восстановление упругости кожи лица, шеи, декольте.","p":[250.0,250.0],"m":75},{"id":8,"c":10,"t":"Процедура глобального омоложения Age Sammum Guinot","d":"Процедура сочетает в себе высокотехнологичные активные компоненты (витамин С, гиалуроновую кислоту, комплекс \"долгая жизнь клетки\" из 56 нутриентов.","p":[250.0,250.0],"m":75},{"id":9,"c":10,"t":"Ультраувлажняющая процедура Hydra Sammum Guinot","d":"Процедура восстанавливает гидробаланс кожи, повышает плотность кожи, возвращая естественное сияние.","p":[230.0,230.0],"m":75},{"id":10,"c":10,"t":"Процедура детокс+очищение+оксигинация Detoxygene Guinot","d":"Процедура направленная на глубокое очищение кожи от токсинов, интенсивное насыщение клеток кислородом. Идеально подходит для жителей мегаполисов, чья кожа страдает от стресса, усталости, нехватки кислорода.","p":[230.0,230.0],"m":75},{"id":11,"c":10,"t":"Процедура ухода за жирной и проблемной кожей Equilibre Purete Guinot","d":"Процедура глубокого очищения и себорегуляции, направленная на устранение жирного блеска, очищение пор и борьбу с воспалениями без агрессивного воздействия.","p":[230.0,230.0],"m":75},{"id":12,"c":10,"t":"Всесезонный пилинг Hydra РН Guinot","d":"Процедура всесезонного пилинга , разработанного как безопасная и комфортная альтернатива агрессивным медицинским пилингам. Стимулирует клеточное обновление, устраняет признаки старения, осветляет пигментацию и выравнивает рельеф.","p":[220.0,220.0],"m":60},{"id":13,"c":10,"t":"Процедура лифтинга с коллагеновым листом","d":"Уход обеспечивает мгновенный лифтинг, глубокое увлажнение и регенерацию кожи. Прекрасная процедура \"на выход\".","p":[180.0,180.0],"m":75},{"id":14,"c":10,"t":"Биолифтинг с алоэ-вера","d":"Профессиональная процедура \"нехирургической подтяжки\", направленная на мгновенное укрепление овала лица, стимуляцию лимфодренажа и глубокое увлажнение.","p":[190.0,190.0],"m":75},{"id":15,"c":10,"t":"Процедура омолаживающая для чувствительной кожи Hydra marine Dr/Spiller","d":"Профессиональная \"талассо -процедура\" направлена на глубокую детоксикацию, минерализацию и интенсивное увлажнение. Идеально подходит для \"уставшей\", стрессовой чувствительной возрастной кожи.","p":[190.0,190.0],"m":75},{"id":16,"c":10,"t":"Моделирующая лифтинг- процедура с термоактивной маской моделяж Beauty mask","d":"Процедура интенсивного лифтинга с согревающим эффектом для моделирования овала лица. Улучшает кровоснабжение, стимулирует обмен веществ и способствует глубокому проникновению активных препаратов, наносимых под нее.","p":[160.0,160.0],"m":75},{"id":17,"c":10,"t":"Процедура неинвазивной карбокситерапии","d":"Процедура насыщения клеток углекислым газом без инъекций и повреждения кожных покровов. При резком повышении концентрации углекислого газа на поверхности кожи организмом ситуация воспринимается как кислородное голодание, в ответ расширяются капилляры, усиливается местное кровообращение, происходит мощный выброс кислорода в ткани.","p":[150.0,150.0],"m":60},{"id":18,"c":10,"t":"Уход за чувствительной кожей Phytomer","d":"Уход за чувствительной кожей Douceur Marine- это успокаивающий \"кокон-уход\", направленный на мгновенное снятие раздражения, укрепление сосудов и восстановление микробиома кожи.","p":[190.0,190.0],"m":60},{"id":19,"c":10,"t":"Омолаживающая программа GIgi Nutripeptide.","d":"Интеллектуальный пептидный комплекс обеспечивает мгновенное увлажнение и запускает процесс выработки питательных веществ и коллагена. Укрепляет кожу, повышает мягкость и эластичность, устраняет морщины и сухость. Придает коже естественное сияние, здоровый и свежий вид","p":[170.0,170.0],"m":75},{"id":20,"c":10,"t":"Процедура ухода за очень чувствительной кожей Recovery Gigi","d":"Процедура моментально успокаивает и смягчает кожу, уменьшает чувствительность, покраснение, отечность, предотвращает развитие раздражения, моментально повышает уровень увлажненности, стимулирует процесс регенерации, задерживает процесс старения клеток.","p":[180.0,180.0],"m":75},{"id":21,"c":10,"t":"Омолаживающая успокаивающая процедура Bioplasma Gigi","d":"Процедура оказывает мощное антиоксидантное действие, очищает кожу от отмерших клеток рогового слоя, стимулирует обмен веществ, обогащает клетки кислородом, увлажняет и успокаивает кожу, ускоряет процесс регенерации клеток.","p":[180.0,180.0],"m":75},{"id":22,"c":10,"t":"Процедура ухода за жирной проблемной кожей Solar Energy Gigi/","d":"Процедура для для ухода за кожей с акне. Избавляет от неровностей рельефа кожи, способствует рассасыванию воспалительных , сужает поры, выравнивает тон кожи инфильтратов. Оказывает мощный антисептический, противозудный, ранозаживляющий эффект, снимает болевые ощущения.","p":[160.0,160.0],"m":75},{"id":23,"c":10,"t":"Процедура ухода за чувствительной кожей Dolce Bioline Jato","d":"Процедура успокаивает и защищает чувствительную, склонную к покраснениям кожу. Экстракты голубики и алоэ вера укрепляют сосуды, увлажняют, масла дерева ши и сладкого миндаля питают и защищают кожу. Уменьшается гиперчувствительность, кожа становится мягкой свежей.","p":[160.0,160.0],"m":75},{"id":24,"c":10,"t":"Омолаживающая процедура для чувствительной кожи Vita Bioline Jato","d":"","p":[160.0,160.0],"m":75},{"id":25,"c":10,"t":"Процедура глобального омоложения Exosome repair Bioline Jato","d":"","p":[180.0,180.0],"m":75},{"id":26,"c":10,"t":"Омолаживающая процедура ретиноевого ухода 5nrrt Dermatime","d":"","p":[170.0,170.0],"m":60},{"id":27,"c":10,"t":"Программа всесезонного омолаживающего пилинга Exopeel Eldermafill","d":"","p":[170.0,170.0],"m":60},{"id":28,"c":10,"t":"Омолаживающая программа для чувствительной кожи Corneotherapy Angiofharm","d":"","p":[170.0,170.0],"m":75},{"id":29,"c":1,"t":"Стрижка мужская","d":"","p":[47.0,47.0],"m":45},{"id":30,"c":1,"t":"Стрижка детская","d":"Стоимость и продолжительность услуги зависят от сложности стрижки.","p":[30.0,40.0],"m":45},{"id":31,"c":1,"t":"Стрижка мужская наголо","d":"","p":[20.0,20.0],"m":30},{"id":32,"c":1,"t":"Мужской маникюр","d":"","p":[60.0,60.0],"m":60},{"id":33,"c":1,"t":"Мужской педикюр","d":"","p":[95.0,95.0],"m":120},{"id":34,"c":2,"t":"Стрижка женская на короткие (до мочки уха) и средней длины (до лопаток) волосы","d":"Начинаем с диагностики состояния кожи головы и волос, обсуждаем форму стрижки, даем рекомендации по индивидуальному подбору образа. Моем волосы с шампунем по типу волос, используем кондиционер или маску для волос, по желанию. Стрижем и в конце сушим волосы по форме с помощью специальных несмываемых средств.","p":[75.0,75.0],"m":60},{"id":35,"c":2,"t":"Стрижка женская на длинные и очень длинные волосы (ниже лопаток)","d":"Начинаем с диагностики состояния кожи головы и волос, обсуждаем форму стрижки, даем рекомендации по индивидуальному подбору образа. Моем волосы с шампунем по типу волос, используем кондиционер или маску для волос, по желанию. Стрижем и в конце сушим волосы по форме с помощью специальных несмываемых средств.","p":[85.0,85.0],"m":80},{"id":36,"c":3,"t":"Окрашивание корней","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Окрашиваем корни, моем волосы, в конце сушим по форме с помощью специальных несмываемых средств.","p":[140.0,165.0],"m":120},{"id":37,"c":3,"t":"Окрашивание корней + стрижка","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Окрашиваем корни, моем волосы, обсуждаем форму стрижки и даем консультацию по индивидуальному подбору образа. В конце сушим по форме с помощью специальных несмываемых средств.","p":[190.0,215.0],"m":120},{"id":38,"c":3,"t":"Окрашивание в один тон или тонирование","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Окрашиваем или тонируем волосы в один тон, моем волосы, в конце сушим по форме с помощью специальных несмываемых средств.","p":[145.0,175.0],"m":120},{"id":39,"c":3,"t":"Окрашивание в один тон или тонирование + стрижка","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Окрашиваем или тонируем волосы в один тон, моем волосы, обсуждаем форму стрижки, даем рекомендации по индивидуальному подбору образа.  Стрижем и в конце сушим волосы по форме с помощью специальных несмываемых средств.","p":[195.0,235.0],"m":165},{"id":40,"c":3,"t":"Осветление корней+ тонирование","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем корни, тонируем волосы от корней до кончиков, объединяя цвет. Моем волосы, в конце сушим по форме с помощью специальных несмываемых средств.","p":[230.0,280.0],"m":180},{"id":41,"c":3,"t":"Осветление корней+ тонирование + стрижка","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем корни, тонируем волосы от корней до кончиков, объединяя цвет. Моем волосы. Обсуждаем форму стрижки, подбираем индивидуально образ, стрижем,  в конце сушим по форме с помощью специальных несмываемых средств","p":[280.0,340.0],"m":225},{"id":42,"c":3,"t":"Контуринг","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем пряди у лица, на висках и кончиках, создавая блики.Моем волосы, в конце сушим по форме с помощью специальных несмываемых средств.","p":[170.0,200.0],"m":120},{"id":43,"c":3,"t":"Контуринг + стрижка","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем пряди у лица, на висках и кончиках, создавая блики. Моем волосы, обсуждаем форму стрижки, даем рекомендации по индивидуальному подбору образа.  Стрижем и в конце сушим волосы по форме с помощью специальных несмываемых средств.","p":[220.0,250.0],"m":165},{"id":44,"c":3,"t":"Частичное рассветление (топовая зона с добавлением прядей 10-15%)","d":"Если у вас очень длинные и густые волосы, то возможно увеличение стоимости услуги. О чем мы вас обязательно проинформируем в ходе консультации до начала работы.","p":[180.0,220.0],"m":180},{"id":45,"c":3,"t":"Частичное рассветление (топовая зона с добавлением прядей 10-15%) + стрижка","d":"Если у вас очень длинные и густые волосы, то возможно увеличение стоимости услуги. О чем мы вас обязательно проинформируем в ходе консультации до начала работы.","p":[230.0,260.0],"m":225},{"id":46,"c":3,"t":"Мелирование короткие волосы (до мочки уха)","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем волосы. Моем волосы, в конце сушим по форме с помощью специальных несмываемых средств.","p":[160.0,210.0],"m":135},{"id":47,"c":3,"t":"Мелирование короткие волосы (до мочки уха) + стрижка","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем волосы.  Обсуждаем форму стрижки и подбираем индивидуальный образ. Моем волосы, в конце сушим по форме с помощью специальных несмываемых средств.","p":[210.0,250.0],"m":180},{"id":48,"c":3,"t":"Мелирование короткие волосы (до мочки уха) + тонирование","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем волосы, тонируем волосы от корней до кончиков. Моем волосы, в конце сушим по форме с помощью специальных несмываемых средств.","p":[210.0,270.0],"m":180},{"id":49,"c":3,"t":"Мелирование короткие волосы (до мочки уха) + тонирование+стрижка","d":"Делаем на чистые волосы. Начинаем с диагностики кожи головы и состояния волос. Осветляем волосы, тонируем волосы от корней до кончиков. Моем волосы, обсуждаем форму стрижки, даем рекомендации по индивидуальному подбору образа.  Стрижем и в конце сушим волосы по форме с помощью специальных несмываемых средств.","p":[260.0,320.0],"m":240},{"id":50,"c":3,"t":"Сложное окрашивание (волосы до мочки уха)","d":"Запишитесь на бесплатную консультацию, чтобы результат соответствовал ожиданиям. Оценим состояние волос, сделаем тест-прядь, согласуем технику, выясним время на услугу. Сложное окрашивание делаем на чистые волосы в технике эйртач, балаяж, бразильский блонд и др. Используем авторские техники, разрабатываем индивидуальные формулы. Осветляем волосы, тонируем, моем с массажем кожи головы, сушим.","p":[260.0,290.0],"m":180},{"id":51,"c":3,"t":"Сложное окрашивание (волосы до лопаток)","d":"Запишитесь на бесплатную консультацию, чтобы результат соответствовал ожиданиям. Оценим состояние волос, сделаем тест-прядь, согласуем технику, выясним время на услугу. Сложное окрашивание делаем на чистые волосы в технике эйртач, балаяж, бразильский блонд и др. Используем авторские техники, разрабатываем индивидуальные формулы. Осветляем волосы, тонируем, моем с массажем кожи головы, сушим.","p":[300.0,340.0],"m":270},{"id":52,"c":3,"t":"Сложное окрашивание (волосы ниже лопаток)","d":"Запишитесь на бесплатную консультацию, чтобы результат соответствовал ожиданиям. Оценим состояние волос, сделаем тест-прядь, согласуем технику, выясним время на услугу. Сложное окрашивание делаем на чистые волосы в технике эйртач, балаяж, бразильский блонд и др. Используем авторские техники, разрабатываем индивидуальные формулы. Осветляем волосы, тонируем, моем с массажем кожи головы, сушим.","p":[340.0,400.0],"m":270},{"id":53,"c":4,"t":"Биозавивка","d":"Запишитесь на бесплатную консультацию, чтобы результат соответствовал ожиданиям. Оценим состояние волос, сделаем тест-прядь, согласуем технику, выясним время на услугу.","p":[190.0,230.0],"m":120},{"id":54,"c":4,"t":"Биовыпрямление Atanelle","d":"Запишитесь на бесплатную консультацию, чтобы результат соответствовал ожиданиям. Оценим состояние волос, сделаем тест-прядь, согласуем технику, выясним время на услугу.","p":[260.0,320.0],"m":180},{"id":55,"c":4,"t":"Биовыпрямление Лиссаж","d":"Запишитесь на бесплатную консультацию, чтобы результат соответствовал ожиданиям. Оценим состояние волос, сделаем тест-прядь, согласуем технику, выясним время на услугу.\nМоем голову специальным шампунем, наносим эмульсию для выпрямления, высушиваем феном с брашингом и выпрямляем утюжком.","p":[200.0,250.0],"m":180},{"id":56,"c":5,"t":"Холодное 3-этапное восстановление Limba","d":"3-этапная процедура для восстановления сухих, тусклых, поврежденных волос. Включат нежное очищение и поэтапное нанесение препаратов с аминокислотами, гидролизированным кератином, протеинами и липидами. В результате улучшаем структуру и прочность волос, и восстанавливаем срединные слои волоса.","p":[150.0,180.0],"m":150},{"id":57,"c":5,"t":"Восстановление протеиновое Limba","d":"Маска, обогащенная протеинами шелка и пшеницы способствуют восстановлению структуры поврежденных волос.","p":[75.0,75.0],"m":60},{"id":58,"c":5,"t":"Восстановление липидное Limba","d":"Благодаря высокому содержанию полиненасыщенных жирных кислот в органовом масле помогает восстановить липидный слой и устранить негативные последствия механического, химического и термического воздействия на волосы.","p":[75.0,75.0],"m":60},{"id":59,"c":6,"t":"Мытье и брашинг","d":"Начинаем с диагностики состояния волос и кожи головы. Моем волосы, сушим по форме с применением специальных несмываемых средств.\nстоимость не зависит от длины волос.","p":[45.0,55.0],"m":45},{"id":60,"c":6,"t":"Укладка (волосы до плеч)","d":"Начинаем с диагностики состояния волос и кожи головы. Моем волосы, сушим,  придаем форму и прикорневой объем с помощью горячих инструментов и профессиональной косметики.","p":[65.0,75.0],"m":60},{"id":61,"c":6,"t":"Укладка (волосы ниже плеч)","d":"Начинаем с диагностики состояния волос и кожи головы. Моем волосы, сушим,  придаем форму и прикорневой объем с помощью горячих инструментов и профессиональной космети","p":[75.0,85.0],"m":60},{"id":62,"c":6,"t":"Экспресс-укладка","d":"Делаем на чистые сухие волосы. Начинаем с диагностики состояния волос и кожи головы. Утюжком, плойкой или феном создаем легкие локоны или вытягиваем волосы. Фиксируем с помощью профессиональной косметики.","p":[60.0,70.0],"m":60},{"id":63,"c":6,"t":"Прическа (локоны с проработкой)","d":"Начинаем с диагностики состояния волос и кожи головы. Моем волосы, сушим с помощью брашинга. Утюжком или плойкой создаем  локоны и прорабатываем каждую прядь с помощью профессиональных стайлинговых препаратов. Фиксируем с помощью профессиональной косметики.","p":[100.0,125.0],"m":90},{"id":64,"c":7,"t":"Маникюр без покрытия аппаратный или комбинированный","d":"","p":[50.0,50.0],"m":60},{"id":65,"c":7,"t":"Маникюр аппаратный или комбинированный + покрытие лаком","d":"","p":[55.0,55.0],"m":70},{"id":66,"c":7,"t":"Маникюр с покрытием гель-лаком (гель)","d":"","p":[75.0,75.0],"m":130},{"id":67,"c":7,"t":"Маникюр с покрытием гель-лаком (цвет)","d":"","p":[80.0,80.0],"m":140},{"id":68,"c":7,"t":"Наращивание ногтей","d":"","p":[100.0,120.0],"m":180},{"id":69,"c":7,"t":"Дизайн","d":"Стоимость зависит от сложности дизайна.","p":[85.0,0.0],"m":150},{"id":70,"c":7,"t":"Маникюр с френч-покрытием гель-лаком","d":"","p":[85.0,85.0],"m":150},{"id":71,"c":7,"t":"Снятие долговременного покрытия","d":"","p":[20.0,20.0],"m":25},{"id":72,"c":7,"t":"Ремонт ногтя","d":"Ремонт 1 ногтя-бесплатно, 3-5 ногтей -10руб., более 5 ногтей-15руб.","p":[7.0,15.0],"m":30},{"id":73,"c":8,"t":"Педикюр эстетический без покрытия аппаратный или комбинированный","d":"","p":[75.0,75.0],"m":105},{"id":74,"c":8,"t":"Педикюр эстетический аппаратный или комбинированный с покрытием лаком","d":"","p":[80.0,80.0],"m":105},{"id":75,"c":8,"t":"Педикюр эстетический аппаратный или комбинированный с покрытием гель-лаком","d":"","p":[90.0,90.0],"m":120},{"id":76,"c":8,"t":"Гигиеническая обработка пальцев и ногтей","d":"","p":[50.0,50.0],"m":60},{"id":77,"c":8,"t":"Гигиеническая обработка пальцев и ногтей с покрытием лаком","d":"","p":[60.0,60.0],"m":60},{"id":78,"c":8,"t":"Гигиеническая обработка пальцев и ногтей с покрытием гель-лаком","d":"","p":[70.0,70.0],"m":105},{"id":79,"c":8,"t":"Гигиеническая обработка пальцев и ногтей +снятие покрытия гель-лак без последующего нанесения","d":"","p":[60.0,60.0],"m":105},{"id":80,"c":8,"t":"Педикюр эстетический аппаратный или комбинированный + снятие покрытия гель-лак без последующего нанесения","d":"","p":[80.0,80.0],"m":105},{"id":81,"c":8,"t":"Педикюр эстетический аппаратный или комбинированный с покрытием френч гель-лак","d":"","p":[98.0,98.0],"m":120},{"id":82,"c":9,"t":"Обработка эпидермальных и эпидермо-дермальных трещин","d":"","p":[20.0,20.0],"m":40},{"id":83,"c":9,"t":"Удаление стержневой мазоли","d":"","p":[20.0,20.0],"m":20},{"id":84,"c":9,"t":"Зачистка онихолизис","d":"Зачистка большого пальца-30 руб., последующие пальцы -5 руб.","p":[30.0,30.0],"m":30},{"id":85,"c":2,"t":"Стрижка челки","d":"","p":[20.0,20.0],"m":20},{"id":86,"c":2,"t":"Стрижка с помощью бритвы (на короткие волосы)","d":"","p":[85.0,85.0],"m":60},{"id":87,"c":2,"t":"Стрижка с помощью бритвы (ниже лопаток )","d":"","p":[95.0,95.0],"m":80},{"id":88,"c":4,"t":"Кератиновое выпрямление средней длины","d":"","p":[230.0,270.0],"m":180},{"id":89,"c":4,"t":"Кератиновое выпрямление длинные волосы (ниже лопаток)","d":"","p":[250.0,290.0],"m":180},{"id":90,"c":11,"t":"Депиляция области верхней губы","d":"","p":[15.0,15.0],"m":15},{"id":91,"c":11,"t":"Депиляция подмышечной области","d":"","p":[25.0,25.0],"m":15},{"id":92,"c":11,"t":"Депиляция области предплечья","d":"","p":[25.0,25.0],"m":15},{"id":93,"c":11,"t":"Депиляция области бедра","d":"","p":[35.0,35.0],"m":20},{"id":94,"c":11,"t":"Депиляция области голени","d":"","p":[30.0,30.0],"m":20},{"id":95,"c":11,"t":"Депиляция области бикини","d":"","p":[55.0,55.0],"m":45},{"id":96,"c":11,"t":"Депиляция спины","d":"","p":[55.0,55.0],"m":30},{"id":97,"c":1,"t":"стрижка мужская машинкой (1-2 насадки)","d":"","p":[30.0,30.0],"m":30},{"id":98,"c":1,"t":"Окантовка + укладка","d":"","p":[22.0,22.0],"m":30},{"id":99,"c":1,"t":"Укладка","d":"","p":[15.0,15.0],"m":20},{"id":100,"c":1,"t":"Стрижка удлиненная","d":"","p":[52.0,52.0],"m":60},{"id":101,"c":1,"t":"Стрижка мужская для студентов","d":"","p":[35.0,35.0],"m":45},{"id":102,"c":1,"t":"Стрижка удлиненная для студентов","d":"","p":[45.0,45.0],"m":60},{"id":103,"c":11,"t":"Депиляция плеча","d":"","p":[25.0,25.0],"m":20},{"id":104,"c":12,"t":"Депиляция лица","d":"","p":[45.0,45.0],"m":30},{"id":105,"c":12,"t":"Депиляция шеи","d":"","p":[45.0,45.0],"m":30},{"id":106,"c":12,"t":"Депиляция груди","d":"","p":[60.0,60.0],"m":45},{"id":107,"c":12,"t":"Депиляция живота","d":"","p":[60.0,60.0],"m":45},{"id":108,"c":12,"t":"Депиляция подмышечных впадин","d":"","p":[40.0,40.0],"m":30},{"id":109,"c":12,"t":"Депиляция спины","d":"","p":[60.0,60.0],"m":45},{"id":110,"c":12,"t":"Депиляция плеча","d":"","p":[35.0,35.0],"m":30},{"id":111,"c":12,"t":"Депиляция предплечья","d":"","p":[30.0,30.0],"m":30},{"id":112,"c":8,"t":"Гигиеническая обработка пяток","d":"","p":[15.0,15.0],"m":30},{"id":113,"c":9,"t":"Тампонада одного ногтя","d":"","p":[5.0,5.0],"m":60},{"id":114,"c":13,"t":"Коррекция бровей","d":"","p":[30.0,30.0],"m":30},{"id":115,"c":13,"t":"Окрашивание бровей","d":"","p":[30.0,30.0],"m":30},{"id":116,"c":13,"t":"Осветление бровей","d":"","p":[40.0,40.0],"m":35},{"id":117,"c":13,"t":"Окрашивание ресниц","d":"","p":[25.0,25.0],"m":20},{"id":118,"c":13,"t":"Ламинирование ресниц","d":"","p":[75.0,75.0],"m":75},{"id":119,"c":13,"t":"Коррекция + моделирование + окрашивание бровей","d":"","p":[50.0,50.0],"m":45},{"id":120,"c":13,"t":"Долговременная укладка + коррекция + окрашивание","d":"","p":[70.0,70.0],"m":60},{"id":121,"c":13,"t":"Долговременная укладка (без коррекции и окрашивания)","d":"","p":[45.0,45.0],"m":30},{"id":122,"c":13,"t":"Долговременная укладка + коррекция","d":"","p":[65.0,65.0],"m":60},{"id":123,"c":13,"t":"Долговременная укладка + окрашивание","d":"","p":[65.0,65.0],"m":60},{"id":124,"c":13,"t":"Осветление + коррекция и окрашивание бровей","d":"","p":[75.0,75.0],"m":60},{"id":125,"c":10,"t":"Процедура антиоксидантного ухода Supreme C3 Skin Regeneration Bioline","d":"Процедура с мгновенным эффектом, направлена на борьбу с преждевременным старением кожи, защищает кожу от воздействия внешних факторов, стресса и УФ-излучения. Процедура помогает улучшить тон, текстуру кожи, вернуть плотность, упругость и гладкость и сияние кожи. \nВ составе продуктов 20% витамин С в стабильной и биодоступной форме, инкапсулированная ферулловая кислота, липосомальная форма глутатиона, запатентованная формула A.G.E.-дипептида.","p":[170.0,170.0],"m":75},{"id":126,"c":2,"t":"Подравнивание концов одним срезом","d":"","p":[45.0,45.0],"m":60},{"id":127,"c":7,"t":"Маникюр без покрытия аппаратный или комбинированный + снятие долговременного покрытия","d":"","p":[60.0,60.0],"m":70},{"id":128,"c":7,"t":"Креативное наращивание ногтей","d":"Креативное наращивание ногтей - подразумевает под собой :\nэкстра длина, стилеты, когти и другие виды сложных форм.","p":[120.0,140.0],"m":210},{"id":129,"c":8,"t":"Педикюр эстетический с покрытием термопленками","d":"Это современная техника покрытия ногтей специальными ультратонкими полимерными пленками, они заменяют покрытие гель-лаком. Мастер наклеивает их на подготовленную ногтевую пластину и запечатывает. Пленки не создают давление на ногти и подходят при склонности к врастанию ногтя. Не утолщают ногтевую пластину, не требуют сушки в лампе. Носятся до 5 недель без сколов, подходят для поврежденных или истонченных ногтей.","p":[105.0,105.0],"m":135},{"id":130,"c":5,"t":"Кератиновый уход от CHI","d":"В отличие от кератинового выпрямления, кератиновый уход помогает вернуть волосам здоровье, блеск и гладкость, не меняя их естественную форму. Кератин и шёлк в составе заполняют повреждения и защищают от термического воздействия, делая волосы мягкими, послушными и здоровыми.","p":[80.0,80.0],"m":60},{"id":131,"c":1,"t":"Гигиеническая обработка пальцев и ногтей для мужчин","d":"","p":[65.0,65.0],"m":90}],"staff":[{"id":1,"n":"Татьяна","sp":"Бровист, леш-мейкер","bio":"","b":true,"s":[[114,30,30,30],[115,30,30,30],[116,40,40,35],[117,25,25,20],[118,75,75,75],[119,50,50,45],[120,70,70,60],[121,45,45,30],[122,65,65,60]]},{"id":2,"n":"Полина","sp":"Бровист","bio":"","b":true,"s":[[114,30,30,30],[115,30,30,30],[116,40,40,35],[117,25,25,20],[118,75,75,75],[119,50,50,45],[120,70,70,60],[121,45,45,30],[122,65,65,60]]},{"id":3,"n":"Милана","sp":"Бровист","bio":"","b":false,"s":[[114,30,30,30],[115,30,30,30],[116,40,40,35],[117,25,25,20],[118,75,75,75],[119,50,50,45],[120,70,70,60],[121,45,45,30],[122,65,65,60],[123,65,65,60],[124,75,75,60]]},{"id":4,"n":"Ольга","sp":"Маникюр, педикюр","bio":"","b":true,"s":[[32,60,60,60],[33,95,95,120],[64,50,50,90],[65,55,55,90],[66,75,75,130],[67,80,80,140],[70,85,85,150],[71,20,20,25],[72,7,15,30],[73,75,75,120],[74,80,80,105],[75,90,90,120],[76,50,50,60],[77,60,60,60],[78,70,70,105],[79,60,60,105],[80,80,80,120],[81,98,98,140],[112,15,15,30],[127,60,60,90],[131,65,65,90]]},{"id":5,"n":"Наталья","sp":"Косметология","bio":"Опыт работы 22 года.\n\n• Проходила обучение в ведущих косметических школах Италии и Германии. Опыт работы тренера-технолога косметических брендов Bioline Jato и Dr.Spiller более 10 лет. \n\n• Повышение квалификации в Европе\n\nПочему ко мне приходят: \n\n• Я не просто делаю процедуру - я вижу кожу насквозь.\n\n• 22 года практики + европейское обучение = работа, которой можно доверять.\n\n• Со мной спокойно и уютно.\n\n• Я объясню, подберу и помогу коже быть здоровой, молодой и ухоженной без фанатизма.\n\n• Приходят за результатом, и остаются из-за удовольствия от процесса и спокойствия внутри","b":true,"s":[[2,120,120,90],[3,99,99,90],[4,120,120,60],[5,150,150,90],[6,120,120,60],[1,50,50,30],[19,170,170,75],[20,180,180,75],[21,180,180,75],[22,160,160,75],[23,160,160,75],[24,160,160,75],[25,180,180,75],[26,170,170,60],[27,170,170,60],[28,170,170,75],[90,15,15,15],[91,25,25,15],[92,25,25,15],[93,35,35,20],[94,30,30,20],[95,55,55,45],[96,55,55,30],[103,25,25,20],[104,45,45,30],[105,45,45,30],[106,60,60,45],[107,60,60,45],[108,40,40,30],[109,60,60,45],[110,35,35,30],[111,30,30,30],[125,170,170,75]]},{"id":6,"n":"Диана","sp":"Косметология","bio":"Опыт работы 25 лет. Медицинское образование. \n\n•  Проходила обучение в ведущих косметических школах Италии и Германии. Опыт работы тренером-технологом косметических брендов Bioline Jato и Dr.Spiller 18 лет. Повышение квалификации в Европе.\n\nПочему доверяют свою кожу мне:\n\n•    Я не работаю по шаблонам.\n\n•   Для меня косметология - это не просто набор процедур, а работа с вашей уникальностью.\n\n•   Я не стремюсь \"переделать\" вас.\n\n•   Моя цель - подчеркнуть то лучшее, что дала природа, стереть следы усталости и вернуть уверенность в себе.\n\n•    Ко мне приходят за результатом, который выглядит естественно.\n\n•    Я веду своих пациентов \"за руку\" от первой консультации до полного восстановления, всегда оставаясь на связи.","b":true,"s":[[2,120,120,90],[3,99,99,90],[4,120,120,60],[5,150,150,90],[6,120,120,60],[1,50,50,30],[7,250,250,75],[8,250,250,75],[9,230,230,75],[10,230,230,75],[11,230,230,75],[12,220,220,60],[13,180,180,75],[14,190,190,75],[15,190,190,75],[16,160,160,75],[17,150,150,60],[18,190,190,60],[26,170,170,60],[27,170,170,60],[90,15,15,15],[91,25,25,15],[92,25,25,15],[93,35,35,20],[94,30,30,20],[95,55,55,45],[96,55,55,30],[103,25,25,20],[104,45,45,30],[105,45,45,30],[106,60,60,45],[107,60,60,45],[108,40,40,30],[109,60,60,45],[110,35,35,30],[111,30,30,30],[125,170,170,75]]},{"id":7,"n":"Милена","sp":"Маникюр, педикюр","bio":"Опыт работы 4 года\n\nПостоянно повышаю квалификацию, учавствую в профессиональных семинарах обучающих мастер-классах. \n\nЗнаешь, в чём моя любовь? \n\nСделать ногти, которые и красивые, и живые. Никакой перепилки, никаких «слоёв как на торте». Только тонкая, аккуратная форма и крепкая конструкция.\n\nМои три кита:\n\n•  Архитектура — строю ноготь идеально, чтобы он не скололся, не треснул и не отвалился через неделю.\n\n•  Забота — укрепляю пластину, работаю бережно, без травм.\n\n•  Дизайн — обожаю придумывать сама! Могу нарисовать что угодно: от акварельных разводов до сложных геометрических узоров. И да, каждый дизайн — эксклюзив.\n\nПриходи, даже если у тебя нет идей ?. Просто расскажи о себе: чем занимаешься, что носишь, какое у тебя настроение сегодня. Я придумаю дизайн, который будет «твоим» на 100%. \n\nРаботаю по мудбордам)\n\nДелаю и педикюр — с тем же вниманием к деталям.","b":true,"s":[[32,60,60,60],[33,95,95,120],[64,50,50,60],[65,55,55,70],[66,75,75,130],[67,80,80,140],[68,100,120,180],[69,85,0,150],[70,85,85,150],[71,20,20,25],[72,7,15,30],[73,75,75,105],[74,80,80,105],[75,90,90,120],[76,50,50,60],[77,60,60,60],[78,70,70,105],[79,60,60,105],[80,80,80,105],[81,98,98,120],[82,20,20,40],[83,20,20,20],[84,30,30,30],[112,15,15,30],[113,5,5,0],[127,60,60,70],[128,120,140,210],[129,105,105,135],[131,65,65,90]]},{"id":8,"n":"Екатерина","sp":"Маникюр","bio":"Опыт работы 3 года\n\nУверяю Вас, что :\n\n• Помогу Вам получить ногти мечты.\n\n• Сделаю крутое наращивание.\n\n• Укреплю ломкие ногти.\n\n• Выполню безупречный маникюр аккуратно и со вкусом!","b":true,"s":[[32,60,60,60],[64,50,50,60],[65,55,55,70],[66,75,75,130],[67,80,80,140],[68,100,120,195],[69,85,0,150],[70,85,85,150],[71,20,20,25],[72,7,15,30],[73,75,75,120],[74,80,80,105],[76,50,50,60],[77,60,60,60],[79,60,60,105],[80,80,80,120],[112,15,15,30],[127,60,60,70]]},{"id":9,"n":"Татьяна","sp":"комбинированный мастер, колорист","bio":"Опыт работы более 20 лет. \n\nКомбинированный мастер, четко знающий свое дело)","b":true,"s":[[29,47,47,45],[30,30,40,45],[34,75,75,60],[35,85,85,80],[36,140,165,120],[37,190,215,120],[38,145,175,120],[39,195,235,165],[40,230,280,180],[41,280,340,225],[44,180,220,180],[45,230,260,225],[46,160,210,135],[47,210,250,180],[48,210,270,180],[49,260,320,240],[50,260,290,180],[51,300,340,270],[52,340,400,270],[53,190,230,120],[54,260,320,180],[55,200,250,180],[56,150,180,150],[57,75,75,60],[58,75,75,60],[59,45,55,45],[85,20,20,20],[86,85,85,60],[87,95,95,80],[88,230,270,180],[89,250,290,180],[97,30,30,30],[98,22,22,30],[99,15,15,20],[100,52,52,60],[101,35,35,45],[102,45,45,60],[126,45,45,60],[130,80,80,60]]},{"id":10,"n":"Ирина","sp":"Парикмахер-колорист","bio":"Опыт более 26 лет.\n\nЧто вы получите:\n\n• Подберем стрижку под Ваш образ \n\n• Колористику разной сложности (шатуш, эйртач, мелирование, блонд)\n\n• Прически, укладки  (вечерние, свадебные прически, локоны с проработкой)\n\n•  Процедуры с максимальной заботой о здоровье волос (уход, холодное восстановление, биовыпрямление, ботокс)\n\nЯ ваш мастер на годы:\n\n• Более 20 лет опыта - не цифра, а база\n\n• Если выбирать между \"красотой\" и качеством - я выбираю качество\n\n• Делаю то, что реально идет\n\n• Ваши волосы будут здоровые, а Вы счастливые\n\n• Сделаем все, чтобы Ваша стрижка укладывалась без особых усилий\n\nМоя работа - моя жизнь","b":true,"s":[[34,75,75,60],[35,85,85,80],[36,140,165,120],[37,190,215,120],[38,145,175,120],[39,195,235,165],[40,230,280,180],[41,280,340,225],[42,170,200,120],[43,220,250,165],[44,180,220,180],[45,230,260,225],[46,160,210,135],[47,210,250,180],[48,210,270,180],[49,260,320,240],[50,260,290,180],[51,300,340,270],[52,340,400,270],[53,190,230,120],[54,260,320,180],[55,200,250,180],[56,150,180,150],[57,75,75,60],[58,75,75,60],[59,45,55,45],[60,65,75,60],[61,75,85,60],[62,60,70,60],[63,100,125,90],[85,20,20,20],[86,85,85,60],[87,95,95,80],[126,45,45,60],[130,80,80,60]]},{"id":11,"n":"Эльвира","sp":"мужской мастер","bio":"Опыт работы более 25 лет. \n\nСпециализируюсь на любых мужских стрижках и укладках\n\nМожете мне доверять, ведь:\n\n• Всегда говорю по делу, не уговариваю, не преукрашиваю.\n\n• Стригу так, чтобы утром было достаточно провести рукой.\n\n• Идеальный баланс формы, учет всех нюансов роста волос\n\n• Уважаю ваше время. Максимум результата за минимальное время\n\nДелаю брутально и аккуратно.","b":true,"s":[[29,47,47,45],[30,30,40,45],[31,20,20,30],[97,30,30,30],[98,22,22,30],[99,15,15,20],[100,52,52,60],[101,35,35,45],[102,45,45,60]]},{"id":12,"n":"Александра","sp":"мужской мастер","bio":"Опыт работы более 20 лет.\n\n Почему от меня не уходят годами:\n\n• Чувствую гостей, не лезу в душу\n\n• Не гонюсь за модой\n\n• Предпочитаю форму, а не креатив\n\n• Не барбер, не стилист. просто мастер для тех, кто ценит стабильность\n\nЯ не делаю революцию на голове. Я создаю порядок и уверенность","b":true,"s":[[29,47,47,45],[30,30,40,45],[31,20,20,30],[97,30,30,30],[98,22,22,30],[99,15,15,20],[100,52,52,60],[101,35,35,45],[102,45,45,60]]}]};
+const CUR = "BYN";
+const KEY = "sezony-demo-v1";
+const STEP = 30;
+
+// ---------- время (Минск, UTC+3 без перехода на летнее) ----------
+function minskNow() {
+  const d = new Date(Date.now() + 3 * 3600e3);
+  return { date: d.toISOString().slice(0, 10), min: d.getUTCHours() * 60 + d.getUTCMinutes() };
+}
+const addDays = (date, n) => { const d = new Date(date + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const wd = (date) => (new Date(date + "T00:00:00Z").getUTCDay() + 6) % 7;
+const hm = (m) => String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+const WD = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"];
+const WDL = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
+const MG = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+const MS = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+const MN = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
+const dayLong = (d) => `${WDL[wd(d)]}, ${+d.slice(8)} ${MG[+d.slice(5, 7) - 1]}`;
+const dayShort = (d) => `${WD[wd(d)]}, ${+d.slice(8)} ${MS[+d.slice(5, 7) - 1]}`;
+const dur = (m) => { const h = Math.floor(m / 60), r = m % 60; return h && r ? `${h} ч ${r} мин` : h ? `${h} ч` : `${r} мин`; };
+const price = (a, b) => { const f = (n) => Number.isInteger(n) ? n : n.toFixed(2); return a === b ? `${f(a)} ${CUR}` : `${f(a)} – ${f(b)} ${CUR}`; };
+const plural = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 12 || h > 14) ? b : c; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// ---------- данные ----------
+const staffById = new Map(DATA.staff.map((s) => [s.id, s]));
+let store = null;
+store = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) { const s = JSON.parse(raw); if (s && s.v === 1) return s; }
+  } catch (e) {}
+  return { v: 1, svc: {}, bookings: seedBookings(), nextId: 1000 };
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) {} }
+
+function service(id) {
+  const base = DATA.services.find((s) => s.id === id);
+  const o = (store && store.svc[id]) || {};
+  return { ...base, ...o };
+}
+/** услуга в исполнении мастера: его цена и длительность */
+function staffSvc(staff, id) {
+  const row = staff.s.find((x) => x[0] === id);
+  if (!row) return null;
+  const s = service(id);
+  const edited = store && store.svc[id];
+  // правка цены в админке применяется и к мастерам
+  return { id, t: s.t, p: edited && edited.p ? s.p : [row[1], row[2]], m: edited && edited.m ? s.m : row[3] };
+}
+function shifts(staffId, date) {
+  if (wd(date) === 6) return [];
+  if (staffId % 4 === 0 && wd(date) === 0) return []; // у части мастеров выходной в понедельник
+  return staffId % 2 ? [[540, 1260]] : [[600, 1200]];
+}
+const ACTIVE = (b) => b.status !== "CANCELLED" && b.status !== "NO_SHOW";
+
+function seedBookings() {
+  // правдоподобная загрузка на неделю вперёд; имена — примеры
+  const names = ["Алина", "Ольга К.", "Мария", "Екатерина С.", "Дарья", "Виктория", "Анна", "Юлия М.", "Наталья", "Кристина", "Светлана", "Ксения", "Полина", "Татьяна В.", "Андрей", "Дмитрий", "Сергей", "Елена"];
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const now = minskNow();
+  const out = [];
+  let id = 1;
+  for (let d = -1; d < 8; d++) {
+    const date = addDays(now.date, d);
+    for (const st of DATA.staff) {
+      for (const [s, e] of shifts(st.id, date)) {
+        let t = s + Math.floor(rnd() * 3) * 30;
+        while (t < e - 60) {
+          if (rnd() < 0.42) {
+            const row = st.s[Math.floor(rnd() * st.s.length)];
+            const m = row[3];
+            if (t + m > e) break;
+            const status = d < 0 || (d === 0 && t + m < now.min) ? (rnd() < 0.9 ? "ARRIVED" : "NO_SHOW") : rnd() < 0.3 ? "CONFIRMED" : "BOOKED";
+            const n = names[Math.floor(rnd() * names.length)];
+            out.push({ id: id++, staffId: st.id, date, start: t, end: t + m, client: { name: n, phone: "+37529" + String(1000000 + Math.floor(rnd() * 8999999)) },
+              items: [{ t: service(row[0]).t, p: [row[1], row[2]] }], status, comment: "", source: rnd() < 0.55 ? "ONLINE" : "ADMIN", seen: true });
+            t += m + Math.floor(rnd() * 2) * 30;
+            t = Math.ceil(t / 30) * 30;
+          } else t += 60;
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// ---------- свободное время ----------
+function freeSlots(staffId, date, len) {
+  const now = minskNow();
+  if (date < now.date) return [];
+  const notBefore = date === now.date ? now.min + 60 : 0;
+  const busy = store.bookings.filter((b) => b.staffId === staffId && b.date === date && ACTIVE(b)).map((b) => [b.start, b.end]).sort((a, b) => a[0] - b[0]);
+  const out = new Set();
+  for (const [s, e] of shifts(staffId, date)) {
+    let cur = s;
+    const free = [];
+    for (const [bs, be] of busy) {
+      if (be <= cur || bs >= e) continue;
+      if (bs > cur) free.push([cur, bs]);
+      cur = Math.max(cur, be);
+    }
+    if (cur < e) free.push([cur, e]);
+    for (const [fs, fe] of free) {
+      if (fs + len > fe) continue;
+      if (fs >= notBefore) out.add(fs);
+      for (let t = Math.ceil(fs / STEP) * STEP; t + len <= fe; t += STEP) if (t >= notBefore) out.add(t);
+    }
+  }
+  return [...out].sort((a, b) => a - b);
+}
+function offers(svcIds) {
+  return DATA.staff.filter((s) => s.b && svcIds.every((id) => s.s.some((x) => x[0] === id))).map((s) => {
+    const items = svcIds.map((id) => staffSvc(s, id));
+    return { staff: s, len: svcIds.length ? items.reduce((a, i) => a + i.m, 0) : STEP, p: items.reduce((a, i) => [a[0] + i.p[0], a[1] + i.p[1]], [0, 0]) };
+  });
+}
+/** время → мастера, свободные в это время */
+function daySlots(date, staffId, svcIds) {
+  const map = new Map();
+  for (const o of offers(svcIds)) {
+    if (staffId && o.staff.id !== staffId) continue;
+    for (const t of freeSlots(o.staff.id, date, o.len)) map.set(t, [...(map.get(t) || []), o.staff.id]);
+  }
+  return map;
+}
+
+// ---------- состояние интерфейса ----------
+const ui = {
+  mode: "client",
+  c: { screen: "menu", staffId: null, svc: [], at: null, q: "", expanded: {}, timeStaff: null, date: null, month: null, pickAt: null, err: null, done: null },
+  m: { staffId: null, date: null },
+  a: { tab: "journal", date: null },
+  sheet: null,
+};
+try { const m = localStorage.getItem(KEY + "-mode"); if (m) ui.mode = m; } catch (e) {}
+try { const h = location.hash.slice(1); if (["client", "master", "admin"].includes(h)) ui.mode = h; } catch (e) {}
+
+// ---------- иконки ----------
+const I = {
+  back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+  next: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+  users: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  cal: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18M8 15h3"/></svg>',
+  list: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+  info: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  pen: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  phone: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2Z"/></svg>',
+};
+const avatar = (name, size = 48) => `<div class="circle" style="width:${size}px;height:${size}px;font-size:${size * 0.38}px">${esc(name[0])}</div>`;
+
+// =================== КЛИЕНТ ===================
+function cNext() {
+  const c = ui.c;
+  c.screen = !c.svc.length ? "services" : !c.at ? "time" : "confirm";
+  c.err = null;
+  if (c.screen === "time") { c.timeStaff = c.staffId; c.date = null; c.month = null; c.pickAt = null; }
+}
+function header(title = "Sезоны") {
+  return `<div class="hdr"><button class="icon-btn" data-a="c-home" aria-label="Назад">${I.back}</button><span style="font-size:17px;font-weight:500">${esc(title)}</span></div>`;
+}
+function vClient() {
+  const c = ui.c;
+  return ({ menu: cMenu, staff: cStaff, services: cServices, time: cTime, confirm: cConfirm, done: cDone })[c.screen]();
+}
+function cMenu() {
+  const c = ui.c, st = c.staffId && staffById.get(c.staffId);
+  const names = c.svc.map((id) => service(id).t);
+  const row = (a, icon, title, sub) => `<button class="menu-row" data-a="${a}">${icon}<div class="grow"><div class="clamp2" style="font-size:17px">${esc(title)}</div>${sub ? `<div class="sm muted">${esc(sub)}</div>` : ""}</div><span class="muted">${I.next}</span></button>`;
+  return `<div class="col">
+    <header style="padding:22px 0 14px"><div style="font-size:26px;font-weight:700">Sезоны</div><div class="muted">Салон красоты · Минск</div></header>
+    ${row("c-go-staff", st ? avatar(st.n) : `<div class="circle">${I.users}</div>`, st ? st.n : "Выбрать специалиста", st ? st.sp : c.svc.length || c.at ? "Любой специалист" : "")}
+    ${row("c-go-time", `<div class="circle">${I.cal}</div>`, c.at ? dayLong(c.at.date) : "Выбрать дату и время", c.at ? hm(c.at.min) : "")}
+    ${row("c-go-services", `<div class="circle">${I.list}</div>`, names.length ? names.join(", ") : "Выбрать услуги", names.length > 1 ? `${names.length} ${plural(names.length, "услуга", "услуги", "услуг")}` : "")}
+    <div class="foot">Sезоны · онлайн-запись<br><span class="xs">Демо-версия: ваши записи сохраняются только на этом устройстве</span></div>
+    ${c.svc.length && c.at ? `<div class="bottom"><button class="primary" data-a="c-confirm">Продолжить</button></div>` : ""}
+  </div>`;
+}
+function cStaff() {
+  const c = ui.c, now = minskNow();
+  const offerBy = new Map(offers(c.svc).map((o) => [o.staff.id, o]));
+  const sel = c.pickStaff === undefined ? c.staffId : c.pickStaff;
+  const list = [...DATA.staff].sort((a, b) => (offerBy.has(b.id) ? 1 : 0) - (offerBy.has(a.id) ? 1 : 0));
+  const items = list.map((s) => {
+    const o = offerBy.get(s.id);
+    let near = null;
+    if (o) for (let i = 0; i < 14 && !near; i++) { const d = addDays(now.date, i); const sl = freeSlots(s.id, d, o.len); if (sl.length) near = { d, sl: sl.slice(0, 8) }; }
+    const rating = s.id % 3 === 0 ? `<div class="stars">★★★★★ <span class="muted xs">${4 + s.id % 9} отзывов</span></div>` : "";
+    return `<li class="staff-item ${o ? "" : "off"}">
+      <div style="display:flex;align-items:center;gap:16px">
+        <button class="grow" style="display:flex;align-items:center;gap:16px;text-align:left" data-a="c-pick-staff" data-id="${s.id}" ${o ? "" : "disabled"}>
+          ${avatar(s.n)}<div class="grow"><div style="font-size:17px">${esc(s.n)}</div><div class="sm muted clamp1">${esc(s.sp)}</div>${rating}${o && c.svc.length ? `<div class="sm b">${price(o.p[0], o.p[1])}</div>` : ""}</div>
+        </button>
+        <button class="icon-btn" data-a="c-staff-info" data-id="${s.id}" aria-label="О мастере ${esc(s.n)}">${I.info}</button>
+        <button data-a="c-pick-staff" data-id="${s.id}" ${o ? "" : "disabled"} aria-label="Выбрать"><span class="radio ${sel === s.id ? "on" : ""}"></span></button>
+      </div>
+      ${o && near ? `<div style="padding-left:64px"><div class="sm muted" style="margin:12px 0 8px">Ближайшее время для записи <b style="color:var(--ink);font-weight:500">${near.d === now.date ? "сегодня" : dayShort(near.d)}:</b></div>
+        <div class="slots-row">${near.sl.map((t) => `<button class="slot" data-a="c-staff-slot" data-id="${s.id}" data-d="${near.d}" data-t="${t}">${hm(t)}</button>`).join("")}<button class="slot" data-a="c-staff-other" data-id="${s.id}">Другое время</button></div></div>` : ""}
+      ${o && !near ? `<div class="sm muted" style="padding-left:64px;margin-top:8px">Нет свободного времени в ближайшие 2 недели</div>` : ""}
+    </li>`;
+  }).join("");
+  const nextState = { svc: c.svc.length, at: sel === c.staffId ? c.at : null };
+  const label = !nextState.svc ? "Выбрать услугу" : !nextState.at ? "Выбрать дату и время" : "Готово";
+  return `<div class="col">${header()}<h1 class="big">Выбрать специалиста</h1>
+    <ul style="list-style:none;margin:0;padding:0">
+      <li><button class="menu-row" style="padding:10px 0" data-a="c-pick-staff" data-id="0"><div class="circle">${I.users}</div><span class="grow" style="font-size:17px">Любой специалист</span><span class="radio ${sel == null ? "on" : ""}"></span></button></li>
+      ${items}
+    </ul>
+    <div class="bottom"><button class="primary" data-a="c-staff-done">${label}</button></div></div>`;
+}
+function catalog() {
+  const c = ui.c, st = c.staffId && staffById.get(c.staffId);
+  return DATA.cats.map((cat) => ({
+    ...cat,
+    list: DATA.services.filter((s) => s.c === cat.id).map((s) => service(s.id)).filter((s) => s.online !== false)
+      .map((s) => st ? staffSvc(st, s.id) && { ...s, ...staffSvc(st, s.id) } : DATA.staff.some((x) => x.b && x.s.some((r) => r[0] === s.id)) && s).filter(Boolean),
+  })).filter((c) => c.list.length);
+}
+function cServices() {
+  const c = ui.c;
+  return `<div class="col">${header()}<h1 class="big">Выбрать услуги</h1>
+    <div class="sticky-tools"><label class="search">${I.search}<input id="svc-q" placeholder="Найти" value="${esc(c.q)}" autocomplete="off"></label>
+    <div class="chips" id="svc-chips">${catalog().map((k, i) => `<button class="chip ${i === 0 ? "on" : ""}" data-a="c-cat" data-id="${k.id}">${esc(k.t)}</button>`).join("")}</div></div>
+    <div id="svc-list">${svcList()}</div>
+    <div class="bottom" id="svc-bottom">${svcBottom()}</div></div>`;
+}
+function svcList() {
+  const c = ui.c, q = c.q.trim().toLowerCase();
+  const cats = catalog().map((k) => ({ ...k, list: k.list.filter((s) => !q || s.t.toLowerCase().includes(q)) })).filter((k) => k.list.length);
+  if (!cats.length) return `<p class="muted" style="text-align:center;padding:40px 0">Ничего не найдено</p>`;
+  return cats.map((k) => `<section><h2 class="cat-h" id="cat-${k.id}">${esc(k.t)}</h2>${k.list.map((s) => {
+    const on = c.svc.includes(s.id), ex = c.expanded[s.id];
+    return `<div class="svc"><button class="svc-top" data-a="c-toggle-svc" data-id="${s.id}"><div class="grow"><div>${esc(s.t)}</div>
+      <div class="svc-meta ${ex ? "" : "clamp1"}">${dur(s.m)}${s.d ? " · " + esc(s.d) : ""}</div></div><span class="chk ${on ? "on" : ""}">${on ? I.check : ""}</span></button>
+      <div class="svc-bottom"><span class="b" style="font-weight:500">${price(s.p[0], s.p[1])}</span>${s.d ? `<button class="more" data-a="c-more" data-id="${s.id}">${ex ? "свернуть" : "ещё"}</button>` : ""}</div></div>`;
+  }).join("")}</section>`).join("");
+}
+function svcBottom() {
+  const c = ui.c, st = c.staffId && staffById.get(c.staffId);
+  const items = c.svc.map((id) => (st ? staffSvc(st, id) : service(id)));
+  const tot = items.reduce((a, s) => ({ m: a.m + s.m, p0: a.p0 + s.p[0], p1: a.p1 + s.p[1] }), { m: 0, p0: 0, p1: 0 });
+  return `${items.length ? `<div class="row-between" style="margin-bottom:12px;align-items:baseline"><span>${items.length} ${plural(items.length, "услуга", "услуги", "услуг")} <span class="sm muted">${dur(tot.m)}</span></span><span style="font-weight:500">${price(tot.p0, tot.p1)}</span></div>` : ""}
+    <button class="primary" data-a="c-svc-done" ${items.length ? "" : "disabled"}>${c.at ? "Готово" : "Выбрать дату и время"}</button>`;
+}
+function availableDates(staffId) {
+  const now = minskNow(), out = [];
+  for (let i = 0; i < 60; i++) { const d = addDays(now.date, i); if (daySlots(d, staffId, ui.c.svc).size) out.push(d); }
+  return out;
+}
+function cTime() {
+  const c = ui.c, now = minskNow();
+  const dates = availableDates(c.timeStaff);
+  if (!c.date || !dates.includes(c.date)) c.date = c.at && dates.includes(c.at.date) ? c.at.date : dates[0] || null;
+  if (!c.month) c.month = (c.date || now.date).slice(0, 7);
+  const st = c.staffId && staffById.get(c.staffId);
+  const [y, mo] = c.month.split("-").map(Number);
+  const first = c.month + "-01", start = addDays(first, -wd(first));
+  const days = Array.from({ length: 42 }, (_, i) => addDays(start, i));
+  const weeks = days[35].slice(0, 7) === c.month ? 6 : 5;
+  const av = new Set(dates);
+  const slots = c.date ? [...daySlots(c.date, c.timeStaff, c.svc).keys()].sort((a, b) => a - b) : [];
+  const parts = [["Утро", 0, 720], ["День", 720, 1080], ["Вечер", 1080, 1440]];
+  const pick = c.pickAt;
+  return `<div class="col">${header()}
+    ${st ? `<div class="tabs"><button class="${c.timeStaff ? "on" : ""}" data-a="c-time-staff" data-id="${st.id}">${esc(st.n)}</button><button class="${c.timeStaff ? "" : "on"}" data-a="c-time-staff" data-id="0">Все специалисты</button></div>` : ""}
+    <div class="cal"><div class="cal-head"><span>${MN[mo - 1]} ${y}</span><span><button class="icon-btn" data-a="c-month" data-d="-1" ${c.month <= now.date.slice(0, 7) ? "disabled style='opacity:.3'" : ""} aria-label="Предыдущий месяц">${I.back}</button><button class="icon-btn" data-a="c-month" data-d="1" aria-label="Следующий месяц">${I.next}</button></span></div>
+      <div class="cal-grid">${WD.map((w) => `<div class="wd">${w}</div>`).join("")}${days.slice(0, weeks * 7).map((d) => {
+        const cls = ["day", av.has(d) ? "av" : "na", d === c.date ? "sel" : "", d === now.date && d !== c.date ? "today" : "", d.slice(0, 7) === c.month ? "" : "hide"].join(" ");
+        return `<button class="${cls}" data-a="c-day" data-d="${d}" ${av.has(d) ? "" : "disabled"}>${+d.slice(8)}</button>`;
+      }).join("")}</div></div>
+    <div style="min-height:160px;padding-top:6px">
+      ${!dates.length ? `<p class="muted" style="text-align:center;padding:30px 0">Нет свободного времени для записи</p>` : ""}
+      ${parts.map(([t, a, b]) => { const l = slots.filter((x) => x >= a && x < b); return l.length ? `<div class="part-h">${t}</div><div class="slot-grid">${l.map((x) => `<button class="slot ${pick && pick.date === c.date && pick.min === x ? "on" : ""}" data-a="c-slot" data-t="${x}">${hm(x)}</button>`).join("")}</div>` : ""; }).join("")}
+      ${st && c.timeStaff ? `<p class="sm muted" style="text-align:center;margin-top:16px">Больше свободного времени, если выбрать всех специалистов</p>` : ""}
+    </div>
+    <div class="bottom"><button class="primary" data-a="c-time-done" ${pick ? "" : "disabled"}>Готово</button></div></div>`;
+}
+function cConfirm() {
+  const c = ui.c, st = c.staffId && staffById.get(c.staffId);
+  const free = daySlots(c.at.date, c.staffId, c.svc).get(c.at.min) || [];
+  const os = offers(c.svc).filter((o) => (st ? o.staff.id === st.id : free.includes(o.staff.id)));
+  const lines = c.svc.map((id) => (st ? staffSvc(st, id) : service(id)));
+  const len = os.length ? Math.min(...os.map((o) => o.len)) : lines.reduce((a, l) => a + l.m, 0);
+  const p0 = os.length ? Math.min(...os.map((o) => o.p[0])) : lines.reduce((a, l) => a + l.p[0], 0), p1 = os.length ? Math.max(...os.map((o) => o.p[1])) : lines.reduce((a, l) => a + l.p[1], 0);
+  const total = price(p0, p1);
+  const stillFree = free.length > 0;
+  return `<div class="col">${header()}<h1 class="big">Детали записи</h1>
+    <div class="stack" style="border-bottom:1px solid var(--line);padding-bottom:16px">
+      <div class="detail">${st ? avatar(st.n) : `<div class="circle">${I.users}</div>`}<div class="grow"><div style="font-size:17px">${st ? esc(st.n) : "Любой специалист"}</div><div class="sm muted">${st ? esc(st.sp) : "Подберём свободного мастера"}</div></div><button class="icon-btn" data-a="c-go-staff" aria-label="Изменить мастера">${I.pen}</button></div>
+      <div class="detail"><div class="circle">${I.cal}</div><div class="grow"><div class="sm muted">${dayLong(c.at.date)}</div><div style="font-size:17px">${hm(c.at.min)} — ${hm(c.at.min + len)}</div></div><button class="icon-btn" data-a="c-go-time" aria-label="Изменить время">${I.pen}</button></div>
+    </div>
+    <div style="padding:16px 0">
+      <div class="row-between" style="align-items:center;margin-bottom:12px"><div style="font-size:20px;font-weight:700">Услуги <span class="muted" style="font-size:15px;font-weight:400">${dur(len)}</span></div><button class="icon-btn" data-a="c-go-services" aria-label="Изменить услуги">${I.pen}</button></div>
+      <div class="stack" style="gap:10px;border-bottom:1px solid var(--line);padding-bottom:16px">${lines.map((l) => `<div class="row-between"><div><div>${esc(l.t)}</div><div class="sm muted">${dur(l.m)}</div></div><div style="font-weight:500;white-space:nowrap">${price(l.p[0], l.p[1])}</div></div>`).join("")}</div>
+      <div class="row-between" style="padding-top:14px"><span>Итого</span><span>${total}</span></div>
+    </div>
+    ${stillFree ? `<form class="stack" id="book-form" novalidate>
+      <div style="font-size:20px;font-weight:700">Ваши данные</div>
+      <label class="field"><span>Имя *</span><input class="inp" id="f-name" autocomplete="name" placeholder="Введите имя"></label>
+      <label class="field"><span>Телефон *</span><div class="phone"><span>+375</span><input id="f-phone" inputmode="tel" autocomplete="tel-national" placeholder="Номер телефона"></div></label>
+      <label class="field"><span>E-mail</span><input class="inp" id="f-email" type="email" autocomplete="email" placeholder="Введите e-mail"></label>
+      <label class="field"><span>Комментарий</span><textarea class="inp" id="f-comment" placeholder="Комментарий к записи"></textarea></label>
+      <label style="display:flex;gap:12px;align-items:flex-start" class="sm"><input type="checkbox" id="f-consent" style="width:20px;height:20px;margin:0;accent-color:var(--ink)"> <span>Я даю согласие салону «Sезоны» на обработку персональных данных</span></label>
+      ${c.err ? `<div class="err">${esc(c.err)}</div>` : ""}
+      <div class="bottom" style="margin-top:4px"><button class="primary" type="submit">Записаться</button></div>
+    </form>` : `<div style="background:var(--chip);border-radius:16px;padding:16px;text-align:center" class="stack"><span>Выбранное время уже недоступно.</span><button class="primary" data-a="c-go-time">Выбрать другое время</button></div>`}
+  </div>`;
+}
+function cDone() {
+  const b = ui.c.done, st = staffById.get(b.staffId);
+  return `<div class="col"><div style="padding:56px 0;text-align:center" class="stack">
+    <div class="done-badge">${I.check.replace(/16/g, "32")}</div>
+    <div style="font-size:24px;font-weight:700">Вы записаны!</div>
+    <div class="muted">${dayLong(b.date)}, ${hm(b.start)}<br>Мастер: ${esc(st.n)} · ${esc(b.items.map((i) => i.t).join(", "))}</div>
+    <div style="background:var(--chip);border-radius:16px;padding:14px;text-align:left" class="sm">Переключитесь на роль <b>«Мастер»</b> вверху: запись уже появилась у ${esc(st.n)} с пометкой «Новая». В админке она видна в журнале.</div>
+    <button class="primary" data-a="c-new">Новая запись</button>
+    <button class="secondary" data-a="see-master">Открыть как мастер</button>
+  </div></div>`;
+}
+
+// =================== МАСТЕР ===================
+const STATUS = { BOOKED: "Ожидает", CONFIRMED: "Подтвердил", ARRIVED: "Пришёл", NO_SHOW: "Не пришёл", CANCELLED: "Отменена" };
+function vMaster() {
+  const m = ui.m, now = minskNow();
+  if (!m.staffId) m.staffId = 10;
+  if (!m.date) m.date = now.date;
+  const st = staffById.get(m.staffId);
+  const days = Array.from({ length: 14 }, (_, i) => addDays(now.date, i - 1));
+  const mine = store.bookings.filter((b) => b.staffId === st.id);
+  const list = mine.filter((b) => b.date === m.date).sort((a, b) => a.start - b.start);
+  const active = list.filter((b) => b.status !== "CANCELLED");
+  const sum = active.reduce((a, b) => a + b.items.reduce((s, i) => s + i.p[0], 0), 0);
+  const sh = shifts(st.id, m.date);
+  return `<div class="m-wrap">
+    <div class="m-top">${avatar(st.n, 40)}<div class="grow"><div class="b">${esc(st.n)}</div><div class="sm muted clamp1">${esc(st.sp)}</div></div>
+      <select id="m-staff" class="inp" style="width:auto;height:36px;font-size:14px" aria-label="Сменить мастера">${DATA.staff.map((s) => `<option value="${s.id}" ${s.id === st.id ? "selected" : ""}>${esc(s.n)}</option>`).join("")}</select></div>
+    <nav class="m-days">${days.map((d) => {
+      const n = mine.filter((b) => b.date === d && b.status !== "CANCELLED").length;
+      const unseen = mine.some((b) => b.date === d && !b.seen && b.status !== "CANCELLED");
+      return `<button class="m-day ${d === m.date ? "on" : ""}" data-a="m-day" data-d="${d}"><span class="xs" style="opacity:.65">${WD[wd(d)]}</span><span style="font-size:18px;font-weight:600">${+d.slice(8)}</span><span class="xs">${n || "&nbsp;"}</span>${unseen ? '<span class="dot"></span>' : ""}</button>`;
+    }).join("")}</nav>
+    <div class="m-sec">
+      <div class="row-between" style="align-items:baseline;margin-bottom:6px"><div style="font-size:20px;font-weight:700">${m.date === now.date ? "Сегодня" : dayLong(m.date)}</div><span class="sm muted">${sh.length ? sh.map(([a, b]) => hm(a) + "–" + hm(b)).join(", ") : "Выходной"}</span></div>
+      ${active.length ? `<div class="sm muted" style="margin-bottom:12px">${active.length} зап. · от ${price(sum, sum)}</div>` : ""}
+      ${list.length ? "" : `<div class="card muted" style="text-align:center;padding:28px">Записей нет</div>`}
+      <div class="stack" style="gap:12px">${list.map((b) => {
+        const cancelled = b.status === "CANCELLED";
+        return `<div class="card ${!b.seen && !cancelled ? "new" : ""}" style="${cancelled ? "opacity:.6" : ""}">
+          <div class="row-between" style="align-items:center"><span style="font-size:18px;font-weight:600;font-variant-numeric:tabular-nums">${hm(b.start)} – ${hm(b.end)}</span><span style="display:flex;gap:6px">${!b.seen && !cancelled ? '<span class="pill dark">Новая</span>' : ""}<span class="pill ${b.status}">${STATUS[b.status]}</span></span></div>
+          <div class="row-between" style="align-items:center;margin-top:8px"><div><div style="font-weight:500">${esc(b.client.name)}</div><div class="tel">${esc(b.client.phone)}</div></div><span class="call" aria-hidden="true">${I.phone}</span></div>
+          <div class="stack sm" style="gap:4px;border-top:1px solid var(--line);margin-top:12px;padding-top:12px">${b.items.map((i) => `<div class="row-between"><span>${esc(i.t)}</span><span class="muted" style="white-space:nowrap">${price(i.p[0], i.p[1])}</span></div>`).join("")}</div>
+          ${b.comment ? `<div class="sm" style="background:var(--chip);border-radius:12px;padding:8px 10px;margin-top:8px">${esc(b.comment)}</div>` : ""}
+          ${b.source === "ONLINE" ? '<div class="xs muted" style="margin-top:8px">Онлайн-запись</div>' : ""}
+          ${cancelled ? "" : `<div class="grid2" style="margin-top:12px"><button class="secondary" data-a="m-status" data-id="${b.id}" data-s="ARRIVED" ${b.status === "ARRIVED" ? "disabled style='opacity:.4'" : ""}>Клиент пришёл</button><button class="secondary" data-a="m-status" data-id="${b.id}" data-s="NO_SHOW" ${b.status === "NO_SHOW" ? "disabled style='opacity:.4'" : ""}>Не пришёл</button></div>`}
+        </div>`;
+      }).join("")}</div>
+      <div class="card" style="margin-top:20px"><div class="b">Уведомления о новых записях</div><p class="sm muted" style="margin:8px 0 0">В настоящем приложении мастер получает push-уведомление на телефон и сообщение в Telegram, когда к нему записываются, переносят или отменяют запись. В демо уведомление показывается всплывающей плашкой после записи.</p></div>
+    </div></div>`;
+}
+let seenTimer;
+function markSeenLater() {
+  clearTimeout(seenTimer);
+  if (ui.mode !== "master") return;
+  seenTimer = setTimeout(() => {
+    let changed = false;
+    for (const b of store.bookings) if (b.staffId === ui.m.staffId && b.date === ui.m.date && !b.seen) { b.seen = true; changed = true; }
+    if (changed) { save(); render(); }
+  }, 5000);
+}
+
+// =================== АДМИН ===================
+const AROW = 14; // px на 15 минут
+function vAdmin() {
+  const a = ui.a;
+  return `<div class="a-wrap">
+    <div class="a-nav"><button class="${a.tab === "journal" ? "on" : ""}" data-a="a-tab" data-v="journal">Журнал</button><button class="${a.tab === "services" ? "on" : ""}" data-a="a-tab" data-v="services">Услуги</button><button style="margin-left:auto" class="sm muted" data-a="a-reset">Сбросить демо</button></div>
+    ${a.tab === "journal" ? aJournal() : aServices()}</div>`;
+}
+function aJournal() {
+  const a = ui.a, now = minskNow();
+  if (!a.date) a.date = now.date;
+  const cols = DATA.staff.filter((s) => shifts(s.id, a.date).length || store.bookings.some((b) => b.staffId === s.id && b.date === a.date));
+  const items = store.bookings.filter((b) => b.date === a.date);
+  const act = items.filter((b) => b.status !== "CANCELLED");
+  const startM = 540, endM = 1260, rows = (endM - startM) / 15;
+  const cancelled = items.filter((b) => b.status === "CANCELLED");
+  return `<div class="toolbar"><button class="secondary" data-a="a-day" data-d="-1" aria-label="Предыдущий день">‹</button><button class="secondary" data-a="a-today">Сегодня</button><button class="secondary" data-a="a-day" data-d="1" aria-label="Следующий день">›</button>
+      <span style="font-size:19px;font-weight:700;margin-left:4px">${dayLong(a.date)}</span><span class="muted">· ${act.length} зап.</span></div>
+    ${cols.length ? `<div class="jr"><div class="jr-in" style="width:${50 + cols.length * 150}px">
+      <div class="jr-head"><div class="jr-corner"></div>${cols.map((s) => `<div class="jr-col-h"><div class="clamp1" style="font-weight:500">${esc(s.n)}</div><div class="xs muted">${shifts(s.id, a.date).map(([x, y]) => hm(x) + "–" + hm(y)).join(", ") || "выходной"}</div></div>`).join("")}</div>
+      <div class="jr-body"><div class="jr-times">${Array.from({ length: rows }, (_, r) => { const m = startM + r * 15; return `<div class="jr-t" style="height:${AROW}px">${m % 60 === 0 ? hm(m) : ""}</div>`; }).join("")}</div>
+      ${cols.map((s) => { const sh = shifts(s.id, a.date); return `<div class="jr-col" style="height:${rows * AROW}px">${Array.from({ length: rows }, (_, r) => { const m = startM + r * 15; const w = sh.some(([x, y]) => m >= x && m < y); return `<button class="jr-cell ${m % 60 === 0 ? "h" : ""} ${w ? "" : "off"}" style="height:${AROW}px" data-a="a-new" data-id="${s.id}" data-t="${m}" aria-label="Записать к ${esc(s.n)} на ${hm(m)}"></button>`; }).join("")}
+        ${act.filter((b) => b.staffId === s.id).map((b) => `<button class="appt ${b.status}" style="top:${((b.start - startM) / 15) * AROW + 1}px;height:${Math.max(((b.end - b.start) / 15) * AROW - 2, AROW)}px" data-a="a-open" data-id="${b.id}"><b>${hm(b.start)}–${hm(b.end)}</b>${b.source === "ONLINE" ? " · онлайн" : ""}<div class="clamp1">${esc(b.client.name)}</div><div class="clamp1 muted">${esc(b.items.map((i) => i.t).join(", "))}</div></button>`).join("")}</div>`; }).join("")}
+      ${a.date === now.date && now.min > startM && now.min < endM ? `<div class="now" style="top:${((now.min - startM) / 15) * AROW}px"></div>` : ""}
+      </div></div></div>` : `<div class="card muted" style="text-align:center;border:1px solid var(--line)">В этот день салон не работает</div>`}
+    <p class="sm muted">Нажмите на пустую клетку, чтобы записать клиента, или на запись, чтобы сменить статус или отменить.</p>
+    ${cancelled.length ? `<details class="sm" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Отменённые записи (${cancelled.length})</summary>${cancelled.map((b) => `<div><button style="text-align:left;padding:4px 0" data-a="a-open" data-id="${b.id}">${hm(b.start)} · ${esc(staffById.get(b.staffId).n)} · ${esc(b.client.name)}</button></div>`).join("")}</details>` : ""}`;
+}
+function aServices() {
+  return `<p class="sm muted" style="margin:0 0 12px">Нажмите на услугу, чтобы изменить название, цену или длительность. Изменения сразу видны на сайте записи.</p>
+    ${DATA.cats.map((cat) => `<section class="svc-cat"><div class="b" style="margin-bottom:4px">${esc(cat.t)}</div>${DATA.services.filter((s) => s.c === cat.id).map((s0) => {
+      const s = service(s0.id), masters = DATA.staff.filter((x) => x.s.some((r) => r[0] === s.id)).length;
+      return `<button class="svc-line" data-a="a-svc" data-id="${s.id}"><span style="${s.online === false ? "color:var(--muted)" : ""}">${esc(s.t)}${s.online === false ? ' <span class="pill">не онлайн</span>' : ""}</span><span style="white-space:nowrap">${price(s.p[0], s.p[1])}</span><span class="xs muted">${dur(s.m)} · ${masters} ${plural(masters, "мастер", "мастера", "мастеров")}</span></button>`;
+    }).join("")}</section>`).join("")}`;
+}
+
+// ---------- шторки ----------
+function vSheet() {
+  const s = ui.sheet;
+  if (!s) return "";
+  let body = "";
+  if (s.kind === "staff-info") {
+    const st = staffById.get(s.id);
+    body = `<div style="text-align:center">${avatar(st.n, 96).replace('class="circle"', 'class="circle" style="margin:0 auto"')}<div style="font-size:20px;font-weight:600;margin-top:10px">${esc(st.n)}</div><div class="muted">${esc(st.sp)}</div></div>
+      ${st.bio ? `<p style="white-space:pre-line;margin:16px 0 0">${esc(st.bio)}</p>` : ""}
+      ${st.b ? `<button class="primary" style="margin-top:20px" data-a="c-pick-staff" data-id="${st.id}" data-close="1">Выбрать</button>` : ""}`;
+  }
+  if (s.kind === "appt") {
+    const b = store.bookings.find((x) => x.id === s.id);
+    const st = staffById.get(b.staffId);
+    body = `<div style="font-size:20px;font-weight:700">${esc(b.client.name)}</div><div class="tel">${esc(b.client.phone)}</div>
+      <div class="muted sm" style="margin-top:4px">${dayLong(b.date)}, ${hm(b.start)}–${hm(b.end)} · ${esc(st.n)}${b.source === "ONLINE" ? " · онлайн-запись" : ""}</div>
+      <div style="background:var(--chip);border-radius:12px;padding:10px 12px;margin:12px 0" class="sm">${esc(b.items.map((i) => i.t).join(", "))}<div class="b" style="margin-top:4px">${price(b.items.reduce((a, i) => a + i.p[0], 0), b.items.reduce((a, i) => a + i.p[1], 0))}</div></div>
+      <div class="st-btns">${["BOOKED", "CONFIRMED", "ARRIVED", "NO_SHOW"].map((k) => `<button class="st-btn appt-like ${k} ${b.status === k ? "sel" : ""}" style="position:static;border-left-color:var(--st-${{ BOOKED: "booked", CONFIRMED: "conf", ARRIVED: "arr", NO_SHOW: "no" }[k]});background:var(--st-${{ BOOKED: "booked", CONFIRMED: "conf", ARRIVED: "arr", NO_SHOW: "no" }[k]}-bg)" data-a="a-status" data-id="${b.id}" data-s="${k}">${STATUS[k]}</button>`).join("")}</div>
+      <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">${b.status === "CANCELLED" ? `<button class="secondary" data-a="a-status" data-id="${b.id}" data-s="BOOKED">Восстановить запись</button>` : s.confirmCancel ? `<button class="secondary" style="background:var(--danger);color:#fff" data-a="a-status" data-id="${b.id}" data-s="CANCELLED">Да, отменить</button><button class="secondary" data-a="a-cancel-no">Нет</button>` : `<button class="secondary" style="color:var(--danger)" data-a="a-cancel-ask">Отменить запись</button>`}<button class="secondary" data-a="close">Закрыть</button></div>`;
+  }
+  if (s.kind === "new") {
+    const st = staffById.get(s.staffId);
+    body = `<form id="new-form" class="stack" novalidate><div style="font-size:20px;font-weight:700">Новая запись</div><div class="muted sm">${esc(st.n)} · ${dayLong(ui.a.date)}</div>
+      <div class="grid2"><label class="field"><span>Время</span><input class="inp" id="n-time" type="time" step="300" value="${hm(s.t)}"></label><label class="field"><span>Телефон</span><input class="inp" id="n-phone" inputmode="tel" placeholder="+375 29 …"></label></div>
+      <label class="field"><span>Имя клиента</span><input class="inp" id="n-name"></label>
+      <div class="field"><span>Услуги мастера</span><div style="max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px">${st.s.map((r) => { const x = staffSvc(st, r[0]); return `<label style="display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)" class="sm"><input type="checkbox" name="n-svc" value="${x.id}" style="accent-color:var(--ink)"><span class="grow">${esc(x.t)}</span><span class="xs muted" style="white-space:nowrap">${dur(x.m)} · ${price(x.p[0], x.p[1])}</span></label>`; }).join("")}</div></div>
+      ${s.err ? `<div class="err">${esc(s.err)}</div>` : ""}
+      <div style="display:flex;gap:8px"><button class="primary" type="submit">Создать запись</button><button type="button" class="secondary" data-a="close">Отмена</button></div></form>`;
+  }
+  if (s.kind === "svc") {
+    const x = service(s.id);
+    body = `<form id="svc-form" class="stack" novalidate><div style="font-size:20px;font-weight:700">Услуга</div>
+      <label class="field"><span>Название</span><input class="inp" id="s-t" value="${esc(x.t)}"></label>
+      <div class="grid2" style="grid-template-columns:1fr 1fr 1fr"><label class="field"><span>Цена от</span><input class="inp" id="s-p0" type="number" min="0" value="${x.p[0]}"></label><label class="field"><span>Цена до</span><input class="inp" id="s-p1" type="number" min="0" value="${x.p[1]}"></label><label class="field"><span>Минут</span><input class="inp" id="s-m" type="number" min="5" step="5" value="${x.m}"></label></div>
+      <label style="display:flex;gap:10px;align-items:center"><input type="checkbox" id="s-on" ${x.online === false ? "" : "checked"} style="width:20px;height:20px;accent-color:var(--ink)"> Показывать в онлайн-записи</label>
+      ${s.err ? `<div class="err">${esc(s.err)}</div>` : ""}
+      <div style="display:flex;gap:8px"><button class="primary" type="submit">Сохранить</button><button type="button" class="secondary" data-a="close">Отмена</button></div></form>`;
+  }
+  return `<div class="ov" data-a="close-ov"><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${body}</div></div>`;
+}
+
+function toast(title, text) {
+  const root = document.getElementById("toast-root");
+  root.innerHTML = `<div class="toast" role="status"><b>${esc(title)}</b>${esc(text)}</div>`;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => (root.innerHTML = ""), 5500);
+}
+
+// ---------- отрисовка ----------
+function render() {
+  document.querySelectorAll(".seg button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.v === ui.mode)));
+  document.getElementById("app").innerHTML = ui.mode === "client" ? vClient() : ui.mode === "master" ? vMaster() : vAdmin();
+  renderSheet();
+  markSeenLater();
+}
+function renderSheet() {
+  document.getElementById("sheet-root").innerHTML = vSheet();
+  document.body.style.overflow = ui.sheet ? "hidden" : "";
+}
+const top0 = () => window.scrollTo(0, 0);
+
+// ---------- действия ----------
+const A = {
+  mode(d) { ui.mode = d.v; ui.sheet = null; try { localStorage.setItem(KEY + "-mode", d.v); } catch (e) {} render(); top0(); },
+  close() { ui.sheet = null; renderSheet(); },
+  "close-ov"(d, e) { if (e.target.classList.contains("ov")) { ui.sheet = null; renderSheet(); } },
+  "see-master"() { ui.m.staffId = ui.c.done.staffId; ui.m.date = ui.c.done.date; A.mode({ v: "master" }); },
+
+  "c-home"() { ui.c.screen = "menu"; ui.c.pickStaff = undefined; render(); top0(); },
+  "c-go-staff"() { ui.c.screen = "staff"; ui.c.pickStaff = undefined; render(); top0(); },
+  "c-go-services"() { ui.c.screen = "services"; ui.c.q = ""; render(); top0(); },
+  "c-go-time"() { const c = ui.c; c.screen = "time"; c.timeStaff = c.staffId; c.date = null; c.month = null; c.pickAt = c.at; render(); top0(); },
+  "c-confirm"() { ui.c.screen = "confirm"; ui.c.err = null; render(); top0(); },
+  "c-pick-staff"(d) { ui.c.pickStaff = +d.id || null; if (d.close) ui.sheet = null; render(); },
+  "c-staff-info"(d) { ui.sheet = { kind: "staff-info", id: +d.id }; renderSheet(); },
+  "c-staff-slot"(d) { const c = ui.c; c.staffId = +d.id; c.at = { date: d.d, min: +d.t }; c.pickStaff = undefined; cNext(); render(); top0(); },
+  "c-staff-other"(d) { const c = ui.c; c.staffId = +d.id; c.at = null; c.pickStaff = undefined; c.screen = "time"; c.timeStaff = c.staffId; c.date = null; c.month = null; c.pickAt = null; render(); top0(); },
+  "c-staff-done"() { const c = ui.c; const sel = c.pickStaff === undefined ? c.staffId : c.pickStaff; if (sel !== c.staffId) { c.at = null; c.svc = c.svc.filter((id) => !sel || staffById.get(sel).s.some((r) => r[0] === id)); } c.staffId = sel; c.pickStaff = undefined; cNext(); render(); top0(); },
+  "c-toggle-svc"(d) { const c = ui.c, id = +d.id; c.svc = c.svc.includes(id) ? c.svc.filter((x) => x !== id) : [...c.svc, id]; document.getElementById("svc-list").innerHTML = svcList(); document.getElementById("svc-bottom").innerHTML = svcBottom(); },
+  "c-more"(d) { ui.c.expanded[d.id] = !ui.c.expanded[d.id]; document.getElementById("svc-list").innerHTML = svcList(); },
+  "c-cat"(d) { const el = document.getElementById("cat-" + d.id); if (el) el.scrollIntoView({ behavior: "smooth" }); },
+  "c-svc-done"() { cNext(); render(); top0(); },
+  "c-time-staff"(d) { const c = ui.c; c.timeStaff = +d.id || null; c.pickAt = null; c.date = null; render(); },
+  "c-month"(d) { const c = ui.c; const [y, m] = c.month.split("-").map(Number); c.month = new Date(Date.UTC(y, m - 1 + +d.d, 1)).toISOString().slice(0, 7); render(); },
+  "c-day"(d) { ui.c.date = d.d; ui.c.pickAt = null; render(); },
+  "c-slot"(d) { ui.c.pickAt = { date: ui.c.date, min: +d.t }; render(); },
+  "c-time-done"() { const c = ui.c; c.at = c.pickAt; c.staffId = c.timeStaff; cNext(); render(); top0(); },
+  "c-new"() { Object.assign(ui.c, { screen: "menu", staffId: null, svc: [], at: null, done: null, err: null }); render(); top0(); },
+
+  "m-day"(d) { ui.m.date = d.d; render(); },
+  "m-status"(d) { const b = store.bookings.find((x) => x.id === +d.id); b.status = d.s; save(); render(); },
+
+  "a-tab"(d) { ui.a.tab = d.v; render(); },
+  "a-day"(d) { ui.a.date = addDays(ui.a.date, +d.d); render(); },
+  "a-today"() { ui.a.date = minskNow().date; render(); },
+  "a-open"(d) { ui.sheet = { kind: "appt", id: +d.id }; renderSheet(); },
+  "a-cancel-ask"() { ui.sheet.confirmCancel = true; renderSheet(); },
+  "a-cancel-no"() { ui.sheet.confirmCancel = false; renderSheet(); },
+  "a-status"(d) {
+    const b = store.bookings.find((x) => x.id === +d.id);
+    if (d.s === "BOOKED" && b.status === "CANCELLED") {
+      const clash = store.bookings.some((x) => x.id !== b.id && x.staffId === b.staffId && x.date === b.date && ACTIVE(x) && x.start < b.end && b.start < x.end);
+      if (clash) { toast("Нельзя восстановить", "У мастера уже есть запись на это время"); return; }
+    }
+    const wasCancelled = b.status !== "CANCELLED" && d.s === "CANCELLED";
+    b.status = d.s; save();
+    if (wasCancelled) { ui.sheet = null; toast(`Уведомление мастеру ${staffById.get(b.staffId).n}: запись отменена`, `${dayShort(b.date)}, ${hm(b.start)} — ${b.client.name}`); }
+    else ui.sheet.confirmCancel = false;
+    render();
+  },
+  "a-new"(d) { ui.sheet = { kind: "new", staffId: +d.id, t: +d.t }; renderSheet(); },
+  "a-svc"(d) { ui.sheet = { kind: "svc", id: +d.id }; renderSheet(); },
+  "a-reset"() { store = { v: 1, svc: {}, bookings: seedBookings(), nextId: 1000 }; save(); toast("Демо сброшено", "Записи и цены вернулись к исходным"); render(); },
+};
+
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-a]");
+  if (!el || el.disabled) return;
+  const fn = A[el.dataset.a];
+  if (fn) fn(el.dataset, e);
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "svc-q") { ui.c.q = e.target.value; document.getElementById("svc-list").innerHTML = svcList(); }
+});
+document.addEventListener("change", (e) => {
+  if (e.target.id === "m-staff") { ui.m.staffId = +e.target.value; render(); }
+});
+document.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const v = (id) => (document.getElementById(id) || {}).value || "";
+  if (e.target.id === "book-form") {
+    const c = ui.c;
+    const name = v("f-name").trim();
+    let digits = v("f-phone").replace(/\D/g, "");
+    if (digits.startsWith("80")) digits = digits.slice(2);
+    if (!digits.startsWith("375")) digits = "375" + digits;
+    if (!name) c.err = "Введите имя";
+    else if (digits.length !== 12) c.err = "Проверьте номер телефона: 9 цифр после +375";
+    else if (!document.getElementById("f-consent").checked) c.err = "Нужно согласие на обработку персональных данных";
+    else {
+      const free = daySlots(c.at.date, c.staffId, c.svc).get(c.at.min) || [];
+      if (!free.length) c.err = "Это время только что заняли. Выберите другое.";
+      else {
+        const st = staffById.get(c.staffId || free[0]);
+        const items = c.svc.map((id) => staffSvc(st, id));
+        const b = { id: store.nextId++, staffId: st.id, date: c.at.date, start: c.at.min, end: c.at.min + items.reduce((a, i) => a + i.m, 0),
+          client: { name, phone: "+" + digits }, items: items.map((i) => ({ t: i.t, p: i.p })), status: "BOOKED", comment: v("f-comment").trim(), source: "ONLINE", seen: false };
+        store.bookings.push(b); save();
+        c.done = b; c.screen = "done"; c.err = null;
+        render(); top0();
+        setTimeout(() => toast(`Уведомление мастеру ${st.n}: новая запись`, `${dayShort(b.date)}, ${hm(b.start)} — ${name}, ${b.items.map((i) => i.t).join(", ")}`), 700);
+        return;
+      }
+    }
+    render();
+    const err = document.querySelector(".err"); if (err) err.scrollIntoView({ block: "center" });
+  }
+  if (e.target.id === "new-form") {
+    const s = ui.sheet, st = staffById.get(s.staffId);
+    const ids = [...document.querySelectorAll("input[name=n-svc]:checked")].map((x) => +x.value);
+    const [hh, mm] = v("n-time").split(":").map(Number);
+    const start = hh * 60 + mm, name = v("n-name").trim(), phone = v("n-phone").trim();
+    const items = ids.map((id) => staffSvc(st, id));
+    const end = start + items.reduce((a, i) => a + i.m, 0);
+    if (!name || phone.replace(/\D/g, "").length < 9) s.err = "Укажите имя и телефон клиента";
+    else if (!ids.length) s.err = "Выберите хотя бы одну услугу";
+    else if (store.bookings.some((x) => x.staffId === st.id && x.date === ui.a.date && ACTIVE(x) && x.start < end && start < x.end)) s.err = "У мастера уже есть запись на это время";
+    else {
+      const b = { id: store.nextId++, staffId: st.id, date: ui.a.date, start, end, client: { name, phone }, items: items.map((i) => ({ t: i.t, p: i.p })), status: "BOOKED", comment: "", source: "ADMIN", seen: false };
+      store.bookings.push(b); save(); ui.sheet = null; render();
+      toast(`Уведомление мастеру ${st.n}: новая запись`, `${dayShort(b.date)}, ${hm(start)} — ${name}`);
+      return;
+    }
+    renderSheet();
+  }
+  if (e.target.id === "svc-form") {
+    const s = ui.sheet;
+    const t = v("s-t").trim(), p0 = +v("s-p0"), p1 = Math.max(+v("s-p1"), p0), m = +v("s-m");
+    if (!t) s.err = "Введите название";
+    else if (!(m >= 5)) s.err = "Длительность — от 5 минут";
+    else {
+      store.svc[s.id] = { t, p: [p0, p1], m, online: document.getElementById("s-on").checked }; save();
+      ui.sheet = null; render(); toast("Сохранено", `${t}: ${price(p0, p1)}, ${dur(m)}`); return;
+    }
+    renderSheet();
+  }
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && ui.sheet) { ui.sheet = null; renderSheet(); } });
+
+render();
+</script>
+
+</body>
+</html>
