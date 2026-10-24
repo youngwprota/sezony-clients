@@ -36,9 +36,12 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <h1 className="mr-auto text-2xl font-bold">Клиенты · {total}</h1>
         <form className="flex gap-2">
-          <input name="q" defaultValue={q} placeholder="Имя или телефон" className={`${inputCls} w-64`} />
+          <input name="q" defaultValue={q} placeholder="Имя или телефон" className={`${inputCls} w-56`} />
           <button className={btnSecondary}>Найти</button>
         </form>
+        <Link href="/admin/clients/new" className={`${btnSecondary} flex items-center`}>+ Клиент</Link>
+        <Link href="/admin/clients/import" className={`${btnSecondary} flex items-center`}>Импорт</Link>
+        <a href="/admin/clients/export" className={`${btnSecondary} flex items-center`}>Скачать базу (Excel)</a>
       </div>
       <div className={`${card} overflow-x-auto p-0`}>
         <table className="w-full text-sm">

@@ -114,7 +114,19 @@ function urlBase64ToUint8Array(base64: string) {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
-export function NotificationsPanel({ vapidKey, telegramLink, telegramLinked }: { vapidKey: string; telegramLink: string | null; telegramLinked: boolean }) {
+export function NotificationsPanel({
+  vapidKey,
+  telegramLink,
+  telegramLinked,
+  viberLink,
+  viberLinked,
+}: {
+  vapidKey: string;
+  telegramLink: string | null;
+  telegramLinked: boolean;
+  viberLink: string | null;
+  viberLinked: boolean;
+}) {
   const [push, setPush] = useState<"unsupported" | "off" | "on" | "denied" | "loading">("loading");
 
   useEffect(() => {
@@ -149,6 +161,14 @@ export function NotificationsPanel({ vapidKey, telegramLink, telegramLinked }: {
         {push === "unsupported" && (
           <p className="text-muted">Чтобы получать push-уведомления, добавьте приложение на экран «Домой» (Поделиться → На экран «Домой»).</p>
         )}
+        {viberLink &&
+          (viberLinked ? (
+            <p>✅ Viber подключён</p>
+          ) : (
+            <a href={viberLink} className="flex h-11 items-center justify-center rounded-xl bg-[#7360f2] text-white">
+              Подключить Viber
+            </a>
+          ))}
         {telegramLink &&
           (telegramLinked ? (
             <p>✅ Telegram подключён</p>

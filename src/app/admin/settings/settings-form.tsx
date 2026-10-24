@@ -15,6 +15,8 @@ type Settings = {
   slotStepMinutes: number;
   minLeadMinutes: number;
   bookingDaysAhead: number;
+  remindDayBefore: boolean;
+  remindHoursBefore: number;
 };
 
 export function SettingsForm({ initial }: { initial: Settings }) {
@@ -42,6 +44,19 @@ export function SettingsForm({ initial }: { initial: Settings }) {
         <Field label="Шаг онлайн-записи, мин"><input className={inputCls} min={5} {...num("slotStepMinutes")} /></Field>
         <Field label="Запись не позже чем за, мин"><input className={inputCls} min={0} {...num("minLeadMinutes")} /></Field>
         <Field label="Запись открыта на, дней"><input className={inputCls} min={1} {...num("bookingDaysAhead")} /></Field>
+      </section>
+      <section className={`${card} grid gap-3 sm:grid-cols-2`}>
+        <h2 className="text-lg font-semibold sm:col-span-2">Напоминания клиентам в Viber и Telegram</h2>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={s.remindDayBefore} onChange={(e) => setS({ ...s, remindDayBefore: e.target.checked })} />
+          За сутки до визита
+        </label>
+        <Field label="И ещё за, часов (0 — не отправлять)">
+          <input className={inputCls} min={0} max={12} {...num("remindHoursBefore")} />
+        </Field>
+        <p className="text-xs text-muted sm:col-span-2">
+          Напоминания получают клиенты, которые подключили мессенджер после записи. В сообщении есть кнопки «Приду» и «Отменить».
+        </p>
       </section>
       <div className="flex items-center gap-3">
         <button className={btnPrimary} disabled={pending} onClick={() => start(async () => { const r = await saveSettingsAction(s); setMsg(r.ok ? "Сохранено" : r.error); })}>

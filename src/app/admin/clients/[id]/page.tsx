@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSalon } from "@/lib/booking";
 import { formatDayShort, localDate, localTime } from "@/lib/time";
-import { formatPrice } from "@/lib/money";
 import { card } from "@/components/form";
 import { STATUS_LABELS } from "@/lib/appointments";
 import { ClientForm } from "./client-form";
@@ -20,7 +19,7 @@ export default async function ClientCard({ params }: { params: Promise<{ id: str
   if (!client) notFound();
 
   const visits = client.appointments.filter((a) => a.status === "ARRIVED");
-  const spent = visits.reduce((s, a) => s + a.items.reduce((x, i) => x + Number(i.priceMin), 0), 0);
+  const cancels = client.appointments.filter((a) => a.status === "CANCELLED").length;
   const noShows = client.appointments.filter((a) => a.status === "NO_SHOW").length;
 
   return (
@@ -28,17 +27,19 @@ export default async function ClientCard({ params }: { params: Promise<{ id: str
       <Link href="/admin/clients" className="text-muted">← Клиенты</Link>
       <div className="mt-2 grid gap-4 md:grid-cols-[1fr_1fr]">
         <section className={card}>
-          <ClientForm id={client.id} initial={{ name: client.name, email: client.email ?? "", comment: client.comment }} />
+          <ClientForm id={client.id} initial={{ name: client.name, email: client.email ?? "", birthday: client.birthday ?? "", comment: client.comment }} />
           <p className="mt-3 text-sm">
             <a href={`tel:${client.phone}`} className="text-blue-700">{client.phone}</a>
           </p>
           <p className="mt-1 text-xs text-muted">
             Клиент с {formatDayShort(localDate(client.createdAt, salon.timezone))} · рассылки: {client.marketingConsent ? "согласен" : "нет согласия"}
+            <br />
+            Напоминания: {[client.viberUserId && "Viber", client.telegramChatId && "Telegram"].filter(Boolean).join(", ") || "мессенджер не подключён"}
           </p>
         </section>
         <section className={`${card} grid grid-cols-3 gap-2 text-center`}>
           <Stat label="Визитов" value={String(visits.length)} />
-          <Stat label="Потратил" value={formatPrice(spent, spent, salon.currency)} />
+          <Stat label="Отменил" value={String(cancels)} />
           <Stat label="Не пришёл" value={String(noShows)} />
         </section>
       </div>

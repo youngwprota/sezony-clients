@@ -5,7 +5,8 @@ import { getSalon } from "@/lib/booking";
 import { appointmentsForDay } from "@/lib/appointments";
 import { addDays, formatDayLong, localDate, localTime, weekdayIndex, WEEKDAYS_SHORT, zonedDateTime } from "@/lib/time";
 import { formatPrice } from "@/lib/money";
-import { telegramStartPayload } from "@/lib/telegram-link";
+import { plural } from "@/lib/text";
+import { messengerLinks } from "@/lib/messengers";
 import { Avatar } from "@/components/ui";
 import { AppointmentCard, AutoRefresh, MarkSeen, NotificationsPanel } from "./client";
 import { logoutAction } from "./actions";
@@ -46,10 +47,8 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
   }
   const unseenDays = new Set(unseen.map((u) => localDate(u.startsAt, salon.timezone)));
   const active = appointments.filter((a) => a.status !== "CANCELLED");
-  const revenue = active.reduce((a, x) => a + x.items.reduce((s, i) => s + Number(i.priceMin), 0), 0);
 
-  const botUsername = process.env.TELEGRAM_BOT_USERNAME;
-  const telegramLink = botUsername ? `https://t.me/${botUsername}?start=${telegramStartPayload(staff.id)}` : null;
+  const links = messengerLinks({ kind: "s", id: staff.id });
 
   return (
     <div className="mx-auto min-h-dvh max-w-[600px] bg-[#f6f6f7] pb-10">
@@ -94,7 +93,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
         </div>
         {active.length > 0 && (
           <p className="mb-3 text-sm text-muted">
-            {active.length} зап. · от {formatPrice(revenue, revenue, salon.currency)}
+            {active.length} {plural(active.length, "запись", "записи", "записей")}
           </p>
         )}
         {appointments.length === 0 && <p className="rounded-2xl bg-white p-6 text-center text-muted">Записей нет</p>}
@@ -118,7 +117,13 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
         </ul>
       </section>
 
-      <NotificationsPanel vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} telegramLink={telegramLink} telegramLinked={!!staff.telegramChatId} />
+      <NotificationsPanel
+        vapidKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""}
+        telegramLink={links.telegram}
+        telegramLinked={!!staff.telegramChatId}
+        viberLink={links.viber}
+        viberLinked={!!staff.viberUserId}
+      />
     </div>
   );
 }

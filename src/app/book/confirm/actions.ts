@@ -2,8 +2,10 @@
 
 import { z } from "zod";
 import { BookingError, createOnlineBooking, getSalon } from "@/lib/booking";
-import { notifyStaff } from "@/lib/notify";
+import { notifyClient, notifyStaff } from "@/lib/notify";
+import { messengerLinks } from "@/lib/messengers";
 import { normalizePhone } from "@/lib/phone";
+import { formatDayLong, localDate, localTime } from "@/lib/time";
 
 const schema = z.object({
   staffId: z.number().int().positive().nullable(),
@@ -17,7 +19,9 @@ const schema = z.object({
   marketingConsent: z.boolean().optional(),
 });
 
-export type BookResult = { ok: true; staffName: string } | { ok: false; error: string };
+export type BookResult =
+  | { ok: true; staffName: string; when: string; notified: boolean; telegram: string | null; viber: string | null }
+  | { ok: false; error: string };
 
 export async function bookAction(input: z.input<typeof schema>): Promise<BookResult> {
   const parsed = schema.safeParse(input);
@@ -28,7 +32,11 @@ export async function bookAction(input: z.input<typeof schema>): Promise<BookRes
   try {
     const appointment = await createOnlineBooking({ ...parsed.data, phone });
     await notifyStaff("created", appointment);
-    return { ok: true, staffName: appointment.staff.name };
+    // постоянный клиент уже подключён к мессенджеру — подтверждение уходит сразу
+    const notified = await notifyClient("created", appointment.id);
+    const links = messengerLinks({ kind: "c", id: appointment.clientId });
+    const when = `${formatDayLong(localDate(appointment.startsAt, salon.timezone))}, ${localTime(appointment.startsAt, salon.timezone)}`;
+    return { ok: true, staffName: appointment.staff.name, when, notified, ...links };
   } catch (e) {
     if (e instanceof BookingError) return { ok: false, error: e.message };
     console.error(e);

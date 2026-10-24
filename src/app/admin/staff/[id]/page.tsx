@@ -22,6 +22,7 @@ export default async function StaffEdit({ params }: { params: Promise<{ id: stri
     <StaffForm
       currency={salon.currency}
       telegramLinked={!!staff?.telegramChatId}
+      viberLinked={!!staff?.viberUserId}
       categories={categories.map((c) => ({
         id: c.id,
         title: c.title,

@@ -19,5 +19,21 @@ services:
     environment:
       DATABASE_URL: postgresql://sezony:${POSTGRES_PASSWORD:-sezony}@db:5432/sezony?schema=public
 
+  # резервная копия базы раз в сутки в ./backups (последние 30 дней)
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    depends_on: [db]
+    environment:
+      PGHOST: db
+      PGUSER: sezony
+      PGPASSWORD: ${POSTGRES_PASSWORD:-sezony}
+      PGDATABASE: sezony
+      KEEP_DAYS: 30
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    entrypoint: ["sh", "/backup.sh"]
+
 volumes:
   pgdata:

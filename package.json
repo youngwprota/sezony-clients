@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "setup:webhooks": "tsx scripts/setup-webhooks.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -23,6 +24,7 @@
     "next": "^15.5.28",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "read-excel-file": "^9.3.12",
     "server-only": "^0.0.1",
     "web-push": "^3.6.7",
     "zod": "^3.25.76"

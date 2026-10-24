@@ -18,6 +18,8 @@ export default async function SettingsPage() {
         slotStepMinutes: s.slotStepMinutes,
         minLeadMinutes: s.minLeadMinutes,
         bookingDaysAhead: s.bookingDaysAhead,
+        remindDayBefore: s.remindDayBefore,
+        remindHoursBefore: s.remindHoursBefore,
       }}
     />
   );

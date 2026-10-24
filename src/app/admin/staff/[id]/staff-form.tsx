@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { formatDuration } from "@/lib/time";
 import { formatPrice } from "@/lib/money";
 import { Field, btnPrimary, btnSecondary, card, inputCls } from "@/components/form";
-import { saveStaffAction, unlinkTelegramAction } from "../../actions";
+import { saveStaffAction, unlinkMessengerAction } from "../../actions";
 
 type Assigned = { serviceId: number; priceMin: number | null; priceMax: number | null; durationMin: number | null };
 type Form = {
@@ -23,7 +23,19 @@ type Form = {
 };
 type Category = { id: number; title: string; services: { id: number; title: string; priceMin: number; priceMax: number; durationMin: number }[] };
 
-export function StaffForm({ initial, categories, currency, telegramLinked }: { initial: Form; categories: Category[]; currency: string; telegramLinked: boolean }) {
+export function StaffForm({
+  initial,
+  categories,
+  currency,
+  telegramLinked,
+  viberLinked,
+}: {
+  initial: Form;
+  categories: Category[];
+  currency: string;
+  telegramLinked: boolean;
+  viberLinked: boolean;
+}) {
   const router = useRouter();
   const [f, setF] = useState(initial);
   const [error, setError] = useState<string | null>(null);
@@ -100,13 +112,23 @@ export function StaffForm({ initial, categories, currency, telegramLinked }: { i
           </Field>
         </div>
         {f.id && (
-          <p className="mt-3 text-sm">
-            Telegram: {telegramLinked ? (
-              <>подключён · <button className="text-danger underline" onClick={() => start(() => unlinkTelegramAction(f.id!))}>отключить</button></>
-            ) : (
-              <span className="text-muted">не подключён (мастер подключает сам в приложении)</span>
-            )}
-          </p>
+          <div className="mt-3 flex flex-col gap-1 text-sm">
+            {([["telegram", "Telegram", telegramLinked], ["viber", "Viber", viberLinked]] as const).map(([key, label, linked]) => (
+              <p key={key}>
+                {label}:{" "}
+                {linked ? (
+                  <>
+                    подключён ·{" "}
+                    <button className="text-danger underline" onClick={() => start(() => unlinkMessengerAction(f.id!, key))}>
+                      отключить
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-muted">не подключён (мастер подключает сам в приложении)</span>
+                )}
+              </p>
+            ))}
+          </div>
         )}
       </section>
 

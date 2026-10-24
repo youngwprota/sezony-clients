@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Field, btnPrimary, inputCls } from "@/components/form";
 import { saveClientAction } from "../../actions";
 
-export function ClientForm({ id, initial }: { id: number; initial: { name: string; email: string; comment: string } }) {
+export function ClientForm({ id, initial }: { id: number; initial: { name: string; email: string; birthday: string; comment: string } }) {
   const [f, setF] = useState(initial);
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -15,6 +15,9 @@ export function ClientForm({ id, initial }: { id: number; initial: { name: strin
       </Field>
       <Field label="E-mail">
         <input className={inputCls} value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+      </Field>
+      <Field label="Дата рождения">
+        <input className={inputCls} type="date" value={f.birthday} onChange={(e) => setF({ ...f, birthday: e.target.value })} />
       </Field>
       <Field label="Заметка (видят только сотрудники)">
         <textarea className={`${inputCls} h-20 py-2`} value={f.comment} onChange={(e) => setF({ ...f, comment: e.target.value })} />

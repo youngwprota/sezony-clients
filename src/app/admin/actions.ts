@@ -7,8 +7,10 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { logout, requireAdmin } from "@/lib/auth";
 import { isOverlapError } from "@/lib/booking";
-import { notifyStaff } from "@/lib/notify";
+import { notifyClient, notifyStaff } from "@/lib/notify";
 import { normalizePhone } from "@/lib/phone";
+import { parseCsv } from "@/lib/csv";
+import { rowsToClients } from "@/lib/client-import";
 import { addDays, weekdayIndex, zonedDateTime } from "@/lib/time";
 
 type Result<T = undefined> = { ok: true; data?: T } | { ok: false; error: string };
@@ -112,6 +114,7 @@ export async function createAppointmentAction(input: z.input<typeof createSchema
       });
     });
     await notifyStaff("created", a);
+    await notifyClient("created", a.id);
   } catch (e) {
     if (isOverlapError(e)) return { ok: false, error: OVERLAP };
     throw e;
@@ -144,7 +147,10 @@ export async function updateAppointmentAction(input: z.input<typeof updateSchema
         startsAt,
         endsAt: new Date(startsAt.getTime() + p.data.durationMin * 60_000),
         comment: p.data.comment,
-        ...(before.staffId !== p.data.staffId || before.startsAt.getTime() !== startsAt.getTime() ? { seenByStaff: false } : {}),
+        // при переносе мастер видит запись как новую, а напоминания отправятся заново
+        ...(before.staffId !== p.data.staffId || before.startsAt.getTime() !== startsAt.getTime()
+          ? { seenByStaff: false, remindDaySentAt: null, remindHoursSentAt: null }
+          : {}),
       },
       include: noticeInclude,
     });
@@ -154,6 +160,7 @@ export async function updateAppointmentAction(input: z.input<typeof updateSchema
     } else if (before.startsAt.getTime() !== a.startsAt.getTime()) {
       await notifyStaff("changed", a);
     }
+    if (before.startsAt.getTime() !== a.startsAt.getTime() || before.staffId !== a.staffId) await notifyClient("changed", a.id);
   } catch (e) {
     if (isOverlapError(e)) return { ok: false, error: OVERLAP };
     throw e;
@@ -170,7 +177,10 @@ export async function setAppointmentStatusAction(id: number, status: (typeof STA
   try {
     const before = await db.appointment.findUniqueOrThrow({ where: { id } });
     const a = await db.appointment.update({ where: { id }, data: { status }, include: noticeInclude });
-    if (status === "CANCELLED" && before.status !== "CANCELLED") await notifyStaff("cancelled", a);
+    if (status === "CANCELLED" && before.status !== "CANCELLED") {
+      await notifyStaff("cancelled", a);
+      await notifyClient("cancelled", a.id);
+    }
   } catch (e) {
     // возврат отменённой записи на занятое время
     if (isOverlapError(e)) return { ok: false, error: OVERLAP };
@@ -292,9 +302,9 @@ export async function saveStaffAction(input: z.input<typeof staffSchema>): Promi
   return { ok: true, data: staffId };
 }
 
-export async function unlinkTelegramAction(staffId: number) {
+export async function unlinkMessengerAction(staffId: number, messenger: "telegram" | "viber") {
   await requireAdmin();
-  await db.staff.update({ where: { id: staffId }, data: { telegramChatId: null } });
+  await db.staff.update({ where: { id: staffId }, data: messenger === "telegram" ? { telegramChatId: null } : { viberUserId: null } });
   revalidatePath(`/admin/staff/${staffId}`);
 }
 
@@ -352,12 +362,87 @@ export async function fillScheduleAction(input: z.input<typeof templateSchema>):
 
 // ---------- Клиенты и настройки ----------
 
-export async function saveClientAction(id: number, data: { name: string; email: string; comment: string }): Promise<Result> {
+const birthdaySchema = z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Дата рождения в формате ГГГГ-ММ-ДД")]);
+
+export async function saveClientAction(id: number, data: { name: string; email: string; birthday: string; comment: string }): Promise<Result> {
   await requireAdmin();
   if (!data.name.trim()) return { ok: false, error: "Введите имя" };
-  await db.client.update({ where: { id }, data: { name: data.name.trim(), email: data.email.trim() || null, comment: data.comment } });
+  const b = birthdaySchema.safeParse(data.birthday);
+  if (!b.success) return { ok: false, error: b.error.issues[0].message };
+  await db.client.update({
+    where: { id },
+    data: { name: data.name.trim(), email: data.email.trim() || null, birthday: data.birthday || null, comment: data.comment },
+  });
   revalidatePath(`/admin/clients/${id}`);
   return { ok: true };
+}
+
+export async function createClientAction(data: { name: string; phone: string; email: string; birthday: string; comment: string }): Promise<Result<number>> {
+  await requireAdmin();
+  if (!data.name.trim()) return { ok: false, error: "Введите имя" };
+  const s = await salon();
+  const phone = normalizePhone(data.phone, s.phoneCountryCode);
+  if (!phone) return { ok: false, error: "Проверьте номер телефона" };
+  const b = birthdaySchema.safeParse(data.birthday);
+  if (!b.success) return { ok: false, error: b.error.issues[0].message };
+  const existing = await db.client.findUnique({ where: { phone } });
+  if (existing) return { ok: false, error: `Клиент с этим номером уже есть: ${existing.name}` };
+  const c = await db.client.create({
+    data: { name: data.name.trim(), phone, email: data.email.trim() || null, birthday: data.birthday || null, comment: data.comment },
+  });
+  revalidatePath("/admin/clients");
+  return { ok: true, data: c.id };
+}
+
+export type ImportResult = { ok: true; created: number; updated: number; unchanged: number; skipped: number } | { ok: false; error: string };
+
+/** Импорт базы клиентов из .xlsx/.csv. Существующих клиентов не перезаписывает — только дополняет пустые поля. */
+export async function importClientsAction(_prev: ImportResult | null, form: FormData): Promise<ImportResult> {
+  await requireAdmin();
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Выберите файл" };
+  if (file.size > 10 * 1024 * 1024) return { ok: false, error: "Файл больше 10 МБ" };
+  const buf = Buffer.from(await file.arrayBuffer());
+  let rows: (string | number | boolean | Date | null)[][];
+  try {
+    if (file.name.toLowerCase().endsWith(".xlsx")) {
+      const { readSheet } = await import("read-excel-file/node");
+      rows = (await readSheet(buf)) as typeof rows;
+    } else {
+      rows = parseCsv(buf.toString("utf8"));
+    }
+  } catch {
+    return { ok: false, error: "Не удалось прочитать файл. Сохраните его как .xlsx или .csv и попробуйте снова." };
+  }
+  const s = await salon();
+  const parsed = rowsToClients(rows, s.phoneCountryCode);
+  if (parsed.error) return { ok: false, error: parsed.error };
+
+  let created = 0;
+  let updated = 0;
+  let unchanged = 0;
+  const existing = new Map(
+    (await db.client.findMany({ where: { phone: { in: parsed.clients.map((c) => c.phone) } } })).map((c) => [c.phone, c]),
+  );
+  for (const c of parsed.clients) {
+    const old = existing.get(c.phone);
+    if (!old) {
+      await db.client.create({ data: { name: c.name, phone: c.phone, email: c.email, birthday: c.birthday, comment: c.comment } });
+      created++;
+      continue;
+    }
+    const patch = {
+      ...(!old.email && c.email ? { email: c.email } : {}),
+      ...(!old.birthday && c.birthday ? { birthday: c.birthday } : {}),
+      ...(!old.comment && c.comment ? { comment: c.comment } : {}),
+    };
+    if (Object.keys(patch).length) {
+      await db.client.update({ where: { id: old.id }, data: patch });
+      updated++;
+    } else unchanged++;
+  }
+  revalidatePath("/admin/clients");
+  return { ok: true, created, updated, unchanged, skipped: parsed.skipped };
 }
 
 const settingsSchema = z.object({
@@ -378,6 +463,8 @@ const settingsSchema = z.object({
   slotStepMinutes: z.number().int().min(5).max(120),
   minLeadMinutes: z.number().int().min(0).max(7 * 24 * 60),
   bookingDaysAhead: z.number().int().min(1).max(365),
+  remindDayBefore: z.boolean(),
+  remindHoursBefore: z.number().int().min(0).max(12),
 });
 
 export async function saveSettingsAction(input: z.input<typeof settingsSchema>): Promise<Result> {

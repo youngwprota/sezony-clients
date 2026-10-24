@@ -23,6 +23,10 @@ model Salon {
   minLeadMinutes    Int    @default(60)
   /// На сколько дней вперёд открыта онлайн-запись
   bookingDaysAhead  Int    @default(60)
+  /// Напоминание клиенту за сутки
+  remindDayBefore   Boolean @default(true)
+  /// Напоминание клиенту за N часов (0 — не отправлять)
+  remindHoursBefore Int     @default(2)
 }
 
 model ServiceCategory {
@@ -62,6 +66,7 @@ model Staff {
   /// Можно ли записаться онлайн
   bookable       Boolean        @default(true)
   telegramChatId String?
+  viberUserId    String?
   services       StaffService[]
   shifts         StaffShift[]
   appointments   Appointment[]
@@ -102,9 +107,15 @@ model Client {
   phone        String        @unique
   email        String?
   comment      String        @default("")
+  /// YYYY-MM-DD
+  birthday     String?
   marketingConsent Boolean   @default(false)
+  telegramChatId String?
+  viberUserId  String?
   createdAt    DateTime      @default(now())
   appointments Appointment[]
+
+  @@index([name])
 }
 
 enum AppointmentStatus {
@@ -133,6 +144,9 @@ model Appointment {
   comment   String               @default("")
   /// Пометка, что мастер уже видел запись в приложении
   seenByStaff Boolean            @default(false)
+  /// Когда клиенту отправлены напоминания (чтобы не слать повторно)
+  remindDaySentAt   DateTime?    @db.Timestamptz(3)
+  remindHoursSentAt DateTime?    @db.Timestamptz(3)
   createdAt DateTime             @default(now())
   items     AppointmentService[]
 

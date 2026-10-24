@@ -4,25 +4,51 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import type { BookingState } from "@/lib/booking-state";
 import { CheckIcon, primaryButton } from "@/components/ui";
-import { bookAction } from "./actions";
+import { bookAction, type BookResult } from "./actions";
 
 const input = "h-12 w-full rounded-xl border border-line px-3 outline-none focus:border-ink placeholder:text-muted";
 
 export function ConfirmForm({ state, total, countryCode, salonName }: { state: BookingState; total: string; countryCode: string; salonName: string }) {
   const [form, setForm] = useState({ name: "", phone: "", email: "", comment: "", consent: false, marketingConsent: false });
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const [done, setDone] = useState<Extract<BookResult, { ok: true }> | null>(null);
   const [pending, start] = useTransition();
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   if (done) {
+    const hasLinks = done.telegram || done.viber;
     return (
       <div className="flex flex-col items-center py-10 text-center">
         <div className="flex size-16 items-center justify-center rounded-full bg-ok text-white">
           <CheckIcon size={32} />
         </div>
         <h2 className="mt-4 text-2xl font-bold">Вы записаны!</h2>
-        <p className="mt-2 text-muted">Мастер: {done}. Ждём вас в салоне «{salonName}».</p>
+        <p className="mt-2 text-muted">
+          {done.when}
+          <br />
+          Мастер: {done.staffName}. Ждём вас в салоне «{salonName}».
+        </p>
+        {done.notified ? (
+          <p className="mt-6 rounded-2xl bg-chip p-4 text-sm">Подтверждение отправили вам в мессенджер. Там же придёт напоминание перед визитом.</p>
+        ) : (
+          hasLinks && (
+            <div className="mt-6 w-full rounded-2xl bg-chip p-4">
+              <p className="mb-3 font-medium">Получить подтверждение и напоминание о визите</p>
+              <div className="flex flex-col gap-2">
+                {done.viber && (
+                  <a href={done.viber} className="flex h-12 items-center justify-center rounded-xl bg-[#7360f2] font-medium text-white">
+                    Напомнить в Viber
+                  </a>
+                )}
+                {done.telegram && (
+                  <a href={done.telegram} target="_blank" rel="noreferrer" className="flex h-12 items-center justify-center rounded-xl bg-[#2aabee] font-medium text-white">
+                    Напомнить в Telegram
+                  </a>
+                )}
+              </div>
+            </div>
+          )
+        )}
         <Link href="/" className={`${primaryButton} mt-8`}>
           Новая запись
         </Link>
@@ -41,7 +67,7 @@ export function ConfirmForm({ state, total, countryCode, salonName }: { state: B
         ...form,
         consent: form.consent as true,
       });
-      if (res.ok) setDone(res.staffName);
+      if (res.ok) setDone(res);
       else setError(res.error);
     });
   };

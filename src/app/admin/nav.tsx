@@ -9,6 +9,7 @@ const ITEMS = [
   { href: "/admin/staff", label: "Сотрудники" },
   { href: "/admin/schedule", label: "График работы" },
   { href: "/admin/clients", label: "Клиенты" },
+  { href: "/admin/analytics", label: "Аналитика" },
   { href: "/admin/settings", label: "Настройки" },
 ];
 
