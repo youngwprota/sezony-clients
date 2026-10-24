@@ -24,9 +24,13 @@ function toBirthday(v: Cell): string | null {
 
 /**
  * Превращает строки таблицы (выгрузка YCLIENTS, Excel, CSV) в клиентов.
- * Колонки ищутся по заголовку в первых 10 строках; строки без телефона пропускаются.
+ * Колонки ищутся по заголовку в первых 10 строках; строки без телефона или с несуществующим
+ * номером пропускаются (примеры таких номеров возвращаются в `invalid`).
  */
-export function rowsToClients(rows: Cell[][], countryCode: string): { clients: ImportedClient[]; skipped: number; error?: string } {
+export function rowsToClients(
+  rows: Cell[][],
+  countryCode: string,
+): { clients: ImportedClient[]; skipped: number; invalid?: string[]; error?: string } {
   const headerIdx = rows.slice(0, 10).findIndex((r) => r.some((c) => COLUMNS.phone.test(String(c ?? "").trim())));
   if (headerIdx < 0) return { clients: [], skipped: 0, error: "Не нашли колонку «Телефон» в первых строках файла" };
   const header = rows[headerIdx].map((c) => String(c ?? "").trim());
@@ -37,10 +41,14 @@ export function rowsToClients(rows: Cell[][], countryCode: string): { clients: I
 
   const byPhone = new Map<string, ImportedClient>();
   let skipped = 0;
+  const invalid: string[] = [];
   for (const r of rows.slice(headerIdx + 1)) {
-    const phone = normalizePhone(String(get(r, "phone") ?? ""), countryCode);
+    const rawPhone = String(get(r, "phone") ?? "").trim();
+    // городские номера тоже сохраняем: старую базу терять нельзя
+    const phone = normalizePhone(rawPhone, countryCode, { allowFixed: true });
     if (!phone) {
       skipped++;
+      if (rawPhone && invalid.length < 20) invalid.push(rawPhone);
       continue;
     }
     const name = [get(r, "name"), get(r, "surname")].map((v) => String(v ?? "").trim()).filter(Boolean).join(" ");
@@ -53,5 +61,5 @@ export function rowsToClients(rows: Cell[][], countryCode: string): { clients: I
       comment: String(get(r, "comment") ?? "").trim(),
     });
   }
-  return { clients: [...byPhone.values()], skipped };
+  return { clients: [...byPhone.values()], skipped, invalid };
 }

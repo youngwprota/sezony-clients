@@ -83,7 +83,8 @@ export function CampaignEditor({
 }) {
   const router = useRouter();
   const [d, setD] = useState<Draft>(initial);
-  const [preview, setPreview] = useState<SegmentPreview | null>(null);
+  // undefined — считаем, null — фильтр заполнен неверно
+  const [preview, setPreview] = useState<SegmentPreview | null | undefined>(undefined);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -215,6 +216,8 @@ export function CampaignEditor({
                 </div>
               )}
             </>
+          ) : preview === null ? (
+            <span className="text-danger">Проверьте фильтр: число визитов должно быть целым и не отрицательным</span>
           ) : (
             <span className="text-muted">Считаем получателей…</span>
           )}

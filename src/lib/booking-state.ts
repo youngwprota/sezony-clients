@@ -3,17 +3,21 @@ export type BookingState = { staffId: number | null; serviceIds: number[]; at: s
 
 type Params = Record<string, string | string[] | undefined>;
 
+/** Положительное целое, которое помещается в INTEGER базы данных. */
+const isDbId = (n: number) => Number.isInteger(n) && n > 0 && n <= 2_147_483_647;
+
 export function parseBookingState(params: Params): BookingState {
   const one = (k: string) => (Array.isArray(params[k]) ? params[k]![0] : (params[k] as string | undefined));
   const staffId = Number(one("staff"));
   const serviceIds = (one("services") ?? "")
     .split(",")
+    .slice(0, 50)
     .map(Number)
-    .filter((n) => Number.isInteger(n) && n > 0);
+    .filter(isDbId);
   const at = one("at");
   return {
-    staffId: Number.isInteger(staffId) && staffId > 0 ? staffId : null,
-    serviceIds: [...new Set(serviceIds)],
+    staffId: isDbId(staffId) ? staffId : null,
+    serviceIds: [...new Set(serviceIds)].slice(0, 10),
     at: at && !Number.isNaN(Date.parse(at)) ? at : null,
   };
 }

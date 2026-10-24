@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { htmlToPlain, sendViber, viberMessage } from "@/lib/messengers";
+import { forgetChat, htmlToPlain, sendViber, viberMessage } from "@/lib/messengers";
 import { linkChat, sendNextAppointment } from "@/lib/notify";
 import { handleBotInput } from "@/lib/bot";
 
@@ -21,7 +21,17 @@ export async function POST(req: NextRequest) {
   if (!validSignature(raw, req.headers.get("x-viber-content-signature"))) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
-  const event = JSON.parse(raw);
+  let event;
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return NextResponse.json({ ok: true });
+  }
+
+  if (event.event === "unsubscribed" && event.user_id) {
+    await forgetChat({ viberUserId: String(event.user_id) });
+    return NextResponse.json({ ok: true });
+  }
 
   if (event.event === "conversation_started") {
     const userId: string | undefined = event.user?.id;
@@ -34,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   if (event.event === "message" && event.sender?.id) {
     const userId: string = event.sender.id;
-    const data: string = (event.message?.text ?? "").trim();
+    const data: string = typeof event.message?.text === "string" ? event.message.text.trim().slice(0, 500) : "";
     const menu = [{ text: "Мой статус", data: "status" }];
     if (data === "subscribe") {
       await sendViber(userId, "Готово! Уведомления о записях будут приходить сюда.", menu);

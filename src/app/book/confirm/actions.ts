@@ -4,31 +4,41 @@ import { z } from "zod";
 import { BookingError, createOnlineBooking, getSalon } from "@/lib/booking";
 import { notifyClient, notifyStaff } from "@/lib/notify";
 import { messengerLinks } from "@/lib/messengers";
-import { normalizePhone } from "@/lib/phone";
+import { validatePhone } from "@/lib/phone";
 import { formatDayLong, localDate, localTime } from "@/lib/time";
+import { freeText, optionalEmail, personName } from "@/lib/validation";
 
 const schema = z.object({
   staffId: z.number().int().positive().nullable(),
-  serviceIds: z.array(z.number().int().positive()).min(1).max(10),
-  startsAt: z.string(),
-  name: z.string().trim().min(1, "Введите имя").max(100),
-  phone: z.string().trim().min(5, "Введите номер телефона").max(30),
-  email: z.union([z.literal(""), z.string().trim().email("Некорректный e-mail")]).optional(),
-  comment: z.string().max(1000).optional(),
+  serviceIds: z
+    .array(z.number().int().positive())
+    .min(1, "Выберите хотя бы одну услугу")
+    .max(10, "Не больше 10 услуг за одну запись")
+    .transform((ids) => [...new Set(ids)]),
+  startsAt: z.string().refine((v) => !Number.isNaN(Date.parse(v)), "Выберите время записи"),
+  name: personName,
+  phone: z.string().trim().min(1, "Введите номер телефона").max(30, "Проверьте номер телефона"),
+  email: optionalEmail.optional(),
+  comment: freeText(1000).optional(),
   consent: z.literal(true, { errorMap: () => ({ message: "Нужно согласие на обработку персональных данных" }) }),
   marketingConsent: z.boolean().optional(),
 });
 
 export type BookResult =
   | { ok: true; staffName: string; when: string; notified: boolean; telegram: string | null; viber: string | null }
-  | { ok: false; error: string };
+  | { ok: false; error: string; field?: "phone" | "name" | "email" };
 
 export async function bookAction(input: z.input<typeof schema>): Promise<BookResult> {
   const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const field = issue.path[0];
+    return { ok: false, error: issue.message, ...(field === "name" || field === "email" || field === "phone" ? { field } : {}) };
+  }
   const salon = await getSalon();
-  const phone = normalizePhone(parsed.data.phone, salon.phoneCountryCode);
-  if (!phone) return { ok: false, error: "Проверьте номер телефона" };
+  const checked = validatePhone(parsed.data.phone, salon.phoneCountryCode);
+  if (!checked.ok) return { ok: false, error: checked.error, field: "phone" };
+  const phone = checked.phone;
   try {
     const appointment = await createOnlineBooking({ ...parsed.data, phone });
     await notifyStaff("created", appointment);

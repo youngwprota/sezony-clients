@@ -71,7 +71,8 @@ export async function previewSegment(raw: unknown): Promise<SegmentPreview> {
 
 /** Фиксирует список получателей и ставит рассылку в очередь. */
 export async function startCampaign(id: number) {
-  const campaign = await db.campaign.findUniqueOrThrow({ where: { id } });
+  const campaign = await db.campaign.findUnique({ where: { id } });
+  if (!campaign) throw new Error("Рассылка не найдена");
   if (campaign.status !== "DRAFT") throw new Error("Рассылка уже отправлена");
   const { picks } = await resolve(segmentSchema.parse(campaign.segment));
   const rows = picks.filter((p) => p.channel).map((p) => ({ campaignId: id, clientId: p.client.id, channel: p.channel! }));
@@ -140,6 +141,15 @@ export async function runCampaignQueue(): Promise<number> {
   return pending.length;
 }
 
+/** «-MM-DD» дней рождения, которые празднуем сегодня; родившихся 29 февраля в невисокосный год поздравляем 28-го. */
+export function birthdayKeys(today: string): string[] {
+  const keys = [today.slice(4)];
+  const year = Number(today.slice(0, 4));
+  const leap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  if (today.slice(5) === "02-28" && !leap) keys.push("-02-29");
+  return keys;
+}
+
 /** Поздравления с днём рождения — раз в год каждому, после 11:00 по времени салона. */
 export async function runBirthdayGreetings(now = new Date()) {
   const salon = await db.salon.findUniqueOrThrow({ where: { id: 1 } });
@@ -148,9 +158,9 @@ export async function runBirthdayGreetings(now = new Date()) {
   const key = `birthday:${today.slice(0, 4)}`;
   const clients = await db.client.findMany({
     where: {
-      birthday: { endsWith: today.slice(4) },
+      OR: birthdayKeys(today).map((k) => ({ birthday: { endsWith: k } })),
       marketingConsent: true,
-      OR: [{ telegramChatId: { not: null } }, { viberUserId: { not: null } }],
+      AND: [{ OR: [{ telegramChatId: { not: null } }, { viberUserId: { not: null } }] }],
       autoMessages: { none: { key } },
     },
   });

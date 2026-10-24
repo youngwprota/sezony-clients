@@ -1,18 +1,98 @@
 import { describe, expect, it } from "vitest";
-import { normalizePhone } from "./phone";
+import { formatPhone, normalizePhone, validatePhone } from "./phone";
 
-describe("normalizePhone", () => {
-  it("adds the salon country code", () => {
+const by = (raw: string, opts = {}) => validatePhone(raw, "+375", opts);
+const ok = (raw: string, phone: string) => expect(by(raw)).toEqual({ ok: true, phone });
+const err = (raw: string, re: RegExp, opts = {}) => {
+  const r = by(raw, opts);
+  expect(r.ok, `${raw} должен быть отклонён`).toBe(false);
+  if (!r.ok) expect(r.error).toMatch(re);
+};
+
+describe("validatePhone — Беларусь", () => {
+  it("принимает все привычные форматы мобильного номера", () => {
+    for (const raw of [
+      "+375291234567",
+      "+375 29 123-45-67",
+      "+375 (29) 123-45-67",
+      "375291234567",
+      "80291234567",
+      "8 029 123 45 67",
+      "8-029-123-45-67",
+      "029 1234567",
+      "29 123-45-67",
+      "291234567",
+      "00375291234567",
+      "  +375 29 1234567  ",
+    ]) ok(raw, "+375291234567");
+  });
+
+  it("принимает всех мобильных операторов", () => {
+    ok("33 123-45-67", "+375331234567"); // МТС
+    ok("44 123-45-67", "+375441234567"); // A1
+    ok("29 512-34-56", "+375295123456"); // МТС
+    ok("25 512-34-56", "+375255123456"); // life:)
+  });
+
+  it("отклоняет несуществующие коды операторов", () => {
+    for (const raw of ["24 123-45-67", "30 123-45-67", "11 123-45-67", "99 123-45-67", "+375 00 123-45-67", "+375 55 123-45-67"]) {
+      err(raw, /код оператора/);
+    }
+  });
+
+  it("отклоняет номера, которых нет в плане нумерации оператора", () => {
+    err("25 123-45-67", /код оператора/); // у life:) номера 25 1… не выдаются
+    err("29 012-34-56", /код оператора/);
+  });
+
+  it("проверяет длину", () => {
+    err("29 123-45-6", /короткий/);
+    err("29 123", /короткий/);
+    err("+375 29 123-45-678", /длинный/);
+    err("375 29 1234 5678", /длинный/);
+  });
+
+  it("требует мобильный, но разрешает городской, если нужно", () => {
+    err("8 017 123-45-67", /мобильный/);
+    expect(by("8 017 123-45-67", { allowFixed: true })).toEqual({ ok: true, phone: "+375171234567" });
+  });
+
+  it("отклоняет мусор", () => {
+    err("", /Введите/);
+    err("   ", /Введите/);
+    err("abc", /только цифры/);
+    err("29 123 45 67 доб. 5", /только цифры/);
+    err("+", /Введите/);
+  });
+});
+
+describe("validatePhone — другие страны", () => {
+  it("принимает иностранный мобильный с «+»", () => {
+    expect(by("+7 916 123-45-67")).toEqual({ ok: true, phone: "+79161234567" });
+    expect(by("+48 501 234 567")).toEqual({ ok: true, phone: "+48501234567" });
+    expect(by("+370 612 34567")).toEqual({ ok: true, phone: "+37061234567" });
+  });
+
+  it("отклоняет иностранный номер без «+» и неверный код страны", () => {
+    err("8 916 123 45 67", /Беларуси нет|другой страны/);
+    err("+999 123 456 789", /код страны/);
+    err("+7 000 000 00 00", /код страны/);
+  });
+
+  it("работает для салона в другой стране", () => {
+    expect(validatePhone("916 123-45-67", "+7")).toEqual({ ok: true, phone: "+79161234567" });
+  });
+});
+
+describe("normalizePhone / formatPhone", () => {
+  it("возвращает номер или null", () => {
     expect(normalizePhone("29 123-45-67", "+375")).toBe("+375291234567");
+    expect(normalizePhone("24 123-45-67", "+375")).toBeNull();
   });
-  it("understands the 8 0XX local format", () => {
-    expect(normalizePhone("8 (029) 123-45-67", "+375")).toBe("+375291234567");
-  });
-  it("keeps numbers with an explicit country code", () => {
-    expect(normalizePhone("+7 916 123 45 67", "+375")).toBe("+79161234567");
-    expect(normalizePhone("375291234567", "+375")).toBe("+375291234567");
-  });
-  it("rejects too short numbers", () => {
-    expect(normalizePhone("12345", "+375")).toBeNull();
+
+  it("форматирует номер для показа", () => {
+    expect(formatPhone("+375291234567")).toBe("+375 29 123-45-67");
+    expect(formatPhone("+79161234567")).toBe("+7 916 123 45 67");
+    expect(formatPhone("bad")).toBe("bad");
   });
 });

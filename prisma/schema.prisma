@@ -251,6 +251,8 @@ model User {
   id           Int                @id @default(autoincrement())
   login        String             @unique
   passwordHash String
+  /// Увеличивается при смене пароля — старые сеансы перестают действовать
+  tokenVersion Int                @default(0)
   role         Role
   staffId      Int?               @unique
   staff        Staff?             @relation(fields: [staffId], references: [id])

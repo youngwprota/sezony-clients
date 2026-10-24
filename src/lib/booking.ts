@@ -5,6 +5,8 @@ import { addDays, localDate, localTime, zonedDateTime } from "./time";
 
 const MIN = 60_000;
 const ACTIVE_STATUSES = ["BOOKED", "CONFIRMED", "ARRIVED"] as const;
+/** Сколько предстоящих онлайн-записей может быть на один номер (защита от спама). */
+export const MAX_UPCOMING_ONLINE_PER_PHONE = 3;
 
 export type Salon = Awaited<ReturnType<typeof getSalon>>;
 
@@ -33,7 +35,7 @@ export async function getCatalog(staffId?: number | null): Promise<CatalogCatego
         where: {
           active: true,
           online: true,
-          ...(staffId ? { staff: { some: { staffId } } } : { staff: { some: { staff: { active: true, bookable: true } } } }),
+          staff: { some: { ...(staffId ? { staffId } : {}), staff: { active: true, bookable: true } } },
         },
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
         // цены и длительность мастера, если он выбран
@@ -81,7 +83,8 @@ export async function getStaffOffers(serviceIds: number[], salon: Salon): Promis
     where: {
       active: true,
       bookable: true,
-      AND: serviceIds.map((serviceId) => ({ services: { some: { serviceId } } })),
+      // только услуги, открытые для онлайн-записи
+      AND: serviceIds.map((serviceId) => ({ services: { some: { serviceId, service: { active: true, online: true } } } })),
     },
     orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     include: { services: { where: { serviceId: { in: serviceIds } }, include: { service: true } } },
@@ -197,6 +200,8 @@ export type Slot = { time: string; startsAt: string };
 
 export async function getDaySlots(date: string, staffId: number | null, serviceIds: number[]): Promise<Slot[]> {
   const salon = await getSalon();
+  const { today, lastDay } = todayAndLastDay(salon);
+  if (date < today || date > lastDay) return [];
   const slots = await computeSlots(await offersFor(staffId, serviceIds, salon), salon, date, date);
   return [...(slots.get(date)?.keys() ?? [])]
     .sort((a, b) => a - b)
@@ -208,7 +213,7 @@ export async function getNearestSlots(serviceIds: number[], days = 14) {
   const salon = await getSalon();
   const { today } = todayAndLastDay(salon);
   const offers = await offersFor(null, serviceIds, salon);
-  const slots = await computeSlots(offers, salon, today, addDays(today, days));
+  const slots = await computeSlots(offers, salon, today, addDays(today, Math.min(days, salon.bookingDaysAhead)));
   const nearest = new Map<number, { date: string; slots: Slot[] }>();
   for (const date of [...slots.keys()].sort()) {
     const day = slots.get(date)!;
@@ -240,25 +245,52 @@ export type BookingInput = {
 /** Создаёт онлайн-запись. Мастер «любой» подбирается среди свободных в это время. */
 export async function createOnlineBooking(input: BookingInput) {
   const salon = await getSalon();
-  if (input.serviceIds.length === 0) throw new BookingError("Выберите хотя бы одну услугу");
+  const serviceIds = [...new Set(input.serviceIds)];
+  if (serviceIds.length === 0) throw new BookingError("Выберите хотя бы одну услугу");
   const startsAt = new Date(input.startsAt);
   if (Number.isNaN(startsAt.getTime())) throw new BookingError("Некорректное время");
   const date = localDate(startsAt, salon.timezone);
+  const { today, lastDay } = todayAndLastDay(salon);
+  if (date < today) throw new BookingError("Это время уже прошло. Пожалуйста, выберите другое.");
+  if (date > lastDay) throw new BookingError(`Онлайн-запись открыта на ${salon.bookingDaysAhead} дней вперёд. Выберите более раннюю дату.`);
 
-  const offers = await offersFor(input.staffId, input.serviceIds, salon);
+  const upcoming = await db.appointment.count({
+    where: { client: { phone: input.phone }, source: "ONLINE", status: { in: ["BOOKED", "CONFIRMED"] }, startsAt: { gt: new Date() } },
+  });
+  if (upcoming >= MAX_UPCOMING_ONLINE_PER_PHONE) {
+    throw new BookingError(`На этот номер уже есть ${upcoming} предстоящие записи. Чтобы записаться ещё, позвоните в салон.`);
+  }
+
+  const offers = await offersFor(input.staffId, serviceIds, salon);
+  if (!offers.length) {
+    throw new BookingError(
+      input.staffId ? "Этот мастер сейчас не принимает онлайн-запись на выбранные услуги." : "Выбранные услуги сейчас недоступны для онлайн-записи.",
+    );
+  }
   const slots = await computeSlots(offers, salon, date, date);
   const freeStaff = slots.get(date)?.get(startsAt.getTime()) ?? [];
-  const offer = offers.find((o) => freeStaff.includes(o.id));
-  if (!offer) throw new BookingError("Это время уже занято. Пожалуйста, выберите другое.");
+  const candidates = offers.filter((o) => freeStaff.includes(o.id));
+  if (!candidates.length) throw new BookingError("Это время уже занято. Пожалуйста, выберите другое.");
 
+  // при «любом мастере» пробуем следующего свободного, если первого только что заняли
+  for (const offer of candidates) {
+    try {
+      return await createForStaff(offer, serviceIds, startsAt, input);
+    } catch (e) {
+      if (!isOverlapError(e)) throw e;
+    }
+  }
+  throw new BookingError("Это время только что заняли. Пожалуйста, выберите другое.");
+}
+
+async function createForStaff(offer: StaffOffer, serviceIds: number[], startsAt: Date, input: BookingInput) {
   const services = await db.staffService.findMany({
-    where: { staffId: offer.id, serviceId: { in: input.serviceIds } },
+    where: { staffId: offer.id, serviceId: { in: serviceIds } },
     include: { service: true },
   });
-  const ordered = input.serviceIds.map((id) => services.find((s) => s.serviceId === id)!);
-
-  try {
-    return await db.$transaction(async (tx) => {
+  const ordered = serviceIds.map((id) => services.find((s) => s.serviceId === id)!);
+  const create = () =>
+    db.$transaction(async (tx) => {
       const client = await tx.client.upsert({
         where: { phone: input.phone },
         create: {
@@ -294,8 +326,11 @@ export async function createOnlineBooking(input: BookingInput) {
         include: { staff: true, client: true, items: true },
       });
     });
+  try {
+    return await create();
   } catch (e) {
-    if (isOverlapError(e)) throw new BookingError("Это время только что заняли. Пожалуйста, выберите другое.");
+    // два одновременных первых визита с одним номером: второй upsert ловит уникальность — повторяем
+    if ((e as { code?: string }).code === "P2002") return create();
     throw e;
   }
 }

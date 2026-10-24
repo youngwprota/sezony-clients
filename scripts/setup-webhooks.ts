@@ -20,7 +20,7 @@ async function main() {
       body: JSON.stringify({
         url: `${app}/api/telegram/webhook`,
         secret_token: process.env.TELEGRAM_WEBHOOK_SECRET,
-        allowed_updates: ["message", "callback_query"],
+        allowed_updates: ["message", "callback_query", "my_chat_member"],
       }),
     });
     console.log("Telegram:", JSON.stringify(await res.json()));
@@ -43,7 +43,7 @@ async function main() {
     const res = await fetch("https://chatapi.viber.com/pa/set_webhook", {
       method: "POST",
       headers: { "content-type": "application/json", "X-Viber-Auth-Token": vb },
-      body: JSON.stringify({ url: `${app}/api/viber/webhook`, event_types: ["conversation_started", "subscribed", "message"], send_name: true }),
+      body: JSON.stringify({ url: `${app}/api/viber/webhook`, event_types: ["conversation_started", "subscribed", "unsubscribed", "message"], send_name: true }),
     });
     console.log("Viber:", JSON.stringify(await res.json()));
   } else console.log("Viber: VIBER_AUTH_TOKEN не задан, пропускаем");

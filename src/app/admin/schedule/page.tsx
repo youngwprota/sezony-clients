@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getSalon } from "@/lib/booking";
 import { addDays, localDate, weekdayIndex } from "@/lib/time";
+import { isoDate } from "@/lib/validation";
 import { ScheduleGrid } from "./schedule-grid";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
   const salon = await getSalon();
   const today = localDate(new Date(), salon.timezone);
   const { from: fromParam } = await searchParams;
-  const base = fromParam && /^\d{4}-\d{2}-\d{2}$/.test(fromParam) ? fromParam : today;
+  const base = fromParam && isoDate.safeParse(fromParam).success ? fromParam : today;
   const from = addDays(base, -weekdayIndex(base)); // с понедельника
   const to = addDays(from, DAYS - 1);
   const [staff, shifts] = await Promise.all([

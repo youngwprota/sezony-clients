@@ -9,6 +9,7 @@ import { plural } from "@/lib/text";
 import { loyaltyFor } from "@/lib/loyalty";
 import { loyaltyBadge } from "@/lib/loyalty-rules";
 import { messengerLinks } from "@/lib/messengers";
+import { isoDate } from "@/lib/validation";
 import { Avatar } from "@/components/ui";
 import { AppointmentCard, AutoRefresh, MarkSeen, NotificationsPanel } from "./client";
 import { logoutAction } from "./actions";
@@ -20,7 +21,7 @@ export default async function MasterPage({ searchParams }: { searchParams: Promi
   const salon = await getSalon();
   const today = localDate(new Date(), salon.timezone);
   const { date: dateParam } = await searchParams;
-  const date = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today;
+  const date = dateParam && isoDate.safeParse(dateParam).success ? dateParam : today;
 
   const staff = await db.staff.findUniqueOrThrow({ where: { id: session.staffId } });
   const days = Array.from({ length: 14 }, (_, i) => addDays(today, i - 1));

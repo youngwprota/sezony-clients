@@ -137,6 +137,7 @@ export function Journal(p: Props) {
                         key={r}
                         type="button"
                         onClick={() => setCreating({ staffId: c.id, time: minutesToHHmm(m) })}
+                        aria-label={`Записать к ${c.name} на ${minutesToHHmm(m)}`}
                         className={`group block w-full text-left text-[11px] ${m % 60 === 0 ? "border-t border-line" : ""} ${
                           working ? "hover:bg-chip" : "bg-[repeating-linear-gradient(135deg,#f7f7f8,#f7f7f8_6px,#efeff1_6px,#efeff1_12px)] hover:brightness-95"
                         }`}

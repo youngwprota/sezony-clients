@@ -5,10 +5,10 @@ import { levelFor, type Level } from "./loyalty-rules";
 export const segmentSchema = z.object({
   levelIds: z.array(z.number().int()).default([]),
   /** не были дольше N дней (с последнего визита) */
-  notVisitedDays: z.number().int().min(1).nullable().default(null),
+  notVisitedDays: z.number().int().min(1).max(3650).nullable().default(null),
   /** были за последние N дней */
-  visitedWithinDays: z.number().int().min(1).nullable().default(null),
-  minVisits: z.number().int().min(0).nullable().default(null),
+  visitedWithinDays: z.number().int().min(1).max(3650).nullable().default(null),
+  minVisits: z.number({ invalid_type_error: "Визитов не меньше: введите число" }).int().min(0, "Визитов — от 0").max(10000).nullable().default(null),
   /** были хотя бы раз у одного из этих мастеров */
   staffIds: z.array(z.number().int()).default([]),
   /** делали услугу из одной из этих категорий */

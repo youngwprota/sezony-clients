@@ -16,7 +16,10 @@ export function ImportForm() {
       {state?.ok && (
         <p className="rounded-xl bg-green-50 p-3 text-green-900">
           Готово: новых клиентов — {state.created}, дополнено — {state.updated}, без изменений — {state.unchanged}
-          {state.skipped ? `, пропущено строк без телефона — ${state.skipped}` : ""}.
+          {state.skipped ? `, пропущено строк без телефона или с неверным номером — ${state.skipped}` : ""}.
+          {state.invalid.length > 0 && (
+            <span className="mt-1 block text-sm">Номера, которые не удалось распознать: {state.invalid.join(", ")}</span>
+          )}
         </p>
       )}
     </form>

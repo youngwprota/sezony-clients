@@ -34,10 +34,14 @@ export function parseCsv(text: string): string[][] {
   return rows.filter((r) => r.some((c) => c.trim()));
 }
 
-/** CSV для Excel: «;», кавычки, BOM — чтобы кириллица открылась без настройки кодировки. */
+/**
+ * CSV для Excel: «;», кавычки, BOM — чтобы кириллица открылась без настройки кодировки.
+ * Текст, который Excel принял бы за формулу (=, +, -, @), предваряется апострофом.
+ */
 export function toCsv(rows: (string | number | null | undefined)[][]): string {
   const cell = (v: string | number | null | undefined) => {
-    const s = v == null ? "" : String(v);
+    let s = v == null ? "" : String(v);
+    if (typeof v === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
     return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
   return "﻿" + rows.map((r) => r.map(cell).join(";")).join("\r\n") + "\r\n";

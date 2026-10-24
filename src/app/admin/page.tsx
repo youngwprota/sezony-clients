@@ -3,6 +3,7 @@ import { getSalon } from "@/lib/booking";
 import { appointmentsForDay } from "@/lib/appointments";
 import { hhmmToMinutes, localDate, localTime } from "@/lib/time";
 import { loyaltyFor } from "@/lib/loyalty";
+import { isoDate } from "@/lib/validation";
 import { loyaltyBadge } from "@/lib/loyalty-rules";
 import { Journal, type JournalAppointment, type JournalStaff } from "./journal";
 
@@ -12,7 +13,7 @@ export default async function JournalPage({ searchParams }: { searchParams: Prom
   const salon = await getSalon();
   const { date: dateParam, all } = await searchParams;
   const today = localDate(new Date(), salon.timezone);
-  const date = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today;
+  const date = dateParam && isoDate.safeParse(dateParam).success ? dateParam : today;
 
   const [staff, shifts, appointments] = await Promise.all([
     db.staff.findMany({ where: { active: true }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }] }),

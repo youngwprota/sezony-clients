@@ -18,7 +18,8 @@ const pct = (v: number | null) => (v === null ? "—" : `${Math.round(v * 100)}%
 
 export default async function AnalyticsPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
   const salon = await getSalon();
-  const { period = "30" } = await searchParams;
+  const { period: rawPeriod } = await searchParams;
+  const period = PERIODS.some((p) => p.key === rawPeriod) ? rawPeriod! : "30";
   const today = localDate(new Date(), salon.timezone);
   const [from, to] = period === "next7" ? [today, addDays(today, 6)] : [addDays(today, -(Number(period) || 30) + 1), today];
   const [a, base] = await Promise.all([getAnalytics(from, to, salon), getClientBase(salon)]);

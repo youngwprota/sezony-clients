@@ -1,5 +1,12 @@
 import "server-only";
+import { db } from "./db";
 import { signLinkPayload, type LinkTarget } from "./link-payload";
+
+/** Снимает привязку чата у клиентов и мастеров (бот заблокирован или отписка). */
+export async function forgetChat(ch: { telegramChatId: string } | { viberUserId: string }) {
+  const data = "telegramChatId" in ch ? { telegramChatId: null } : { viberUserId: null };
+  await Promise.all([db.client.updateMany({ where: ch, data }), db.staff.updateMany({ where: ch, data })]).catch((e) => console.error("forgetChat", e));
+}
 
 /** Кнопка под сообщением: `data` возвращается в вебхук при нажатии, `url` открывает ссылку. */
 export type Button = { text: string; data: string } | { text: string; url: string };
@@ -41,7 +48,12 @@ export async function sendTelegram(chatId: string, html: string, buttons?: Butto
           : {}),
       }),
     });
-    if (!res.ok) console.error("telegram", res.status, await res.text());
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("telegram", res.status, body);
+      // пользователь заблокировал бота или удалил чат — больше не пишем ему
+      if (res.status === 403) await forgetChat({ telegramChatId: chatId });
+    }
     return res.ok;
   } catch (e) {
     console.error("telegram", e);

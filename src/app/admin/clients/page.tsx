@@ -45,7 +45,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
         </form>
         <Link href="/admin/clients/new" className={`${btnSecondary} flex items-center`}>+ Клиент</Link>
         <Link href="/admin/clients/import" className={`${btnSecondary} flex items-center`}>Импорт</Link>
-        <a href="/admin/clients/export" className={`${btnSecondary} flex items-center`}>Скачать базу (Excel)</a>
+        <a href="/admin/clients/export" className={`${btnSecondary} flex items-center`}>Скачать базу (.xlsx)</a>
       </div>
       <div className={`${card} overflow-x-auto p-0`}>
         <table className="w-full text-sm">

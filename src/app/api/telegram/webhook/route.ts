@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { sendTelegram, telegramApi } from "@/lib/messengers";
+import { forgetChat, sendTelegram, telegramApi } from "@/lib/messengers";
 import { linkChat } from "@/lib/notify";
 import { handleBotInput } from "@/lib/bot";
 
@@ -10,7 +10,14 @@ export async function POST(req: NextRequest) {
   if (!secret || req.headers.get("x-telegram-bot-api-secret-token") !== secret) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
-  const update = await req.json();
+  const update = await req.json().catch(() => null);
+  if (!update || typeof update !== "object") return NextResponse.json({ ok: true });
+  // пользователь заблокировал бота
+  const member = update.my_chat_member;
+  if (member?.new_chat_member?.status === "kicked" && member.chat?.id) {
+    await forgetChat({ telegramChatId: String(member.chat.id) });
+    return NextResponse.json({ ok: true });
+  }
 
   const cb = update?.callback_query;
   if (cb?.data && cb.message?.chat?.id) {
@@ -27,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   const msg = update?.message;
   const chatId = msg?.chat?.id ? String(msg.chat.id) : null;
-  const text: string = (msg?.text ?? "").trim();
+  const text: string = typeof msg?.text === "string" ? msg.text.trim().slice(0, 500) : "";
   if (!chatId || !text) return NextResponse.json({ ok: true });
 
   if (text.startsWith("/start ")) {

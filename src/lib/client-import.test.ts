@@ -16,6 +16,10 @@ describe("parseCsv / toCsv", () => {
     expect(parseCsv(toCsv(data))).toEqual(data);
   });
 
+  it("не даёт Excel выполнить формулу из ячейки", () => {
+    expect(toCsv([["=HYPERLINK(\"x\")", "+375", "-1", "@a", 5]])).toBe("\uFEFF\"'=HYPERLINK(\"\"x\"\")\";'+375;'-1;'@a;5\r\n");
+  });
+
   it("falls back to comma separator", () => {
     expect(parseCsv("name,phone\nA,1")).toEqual([["name", "phone"], ["A", "1"]]);
   });
