@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sezony
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sezony}
+      POSTGRES_DB: sezony
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on: [db]
+    ports:
+      - "3000:3000"
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://sezony:${POSTGRES_PASSWORD:-sezony}@db:5432/sezony?schema=public
+
+volumes:
+  pgdata:
